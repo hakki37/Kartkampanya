@@ -573,6 +573,9 @@ class _CampaignsPageState extends State<CampaignsPage> {
       final matchingCards = widget.cards
           .where((card) => cardMatches(campaign, card))
           .toList();
+      if (widget.cards.isNotEmpty && matchingCards.isEmpty) {
+  continue;
+      }
 
       if (widget.cards.isNotEmpty && matchingCards.isEmpty) {
         continue;
