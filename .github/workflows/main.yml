@@ -20,16 +20,36 @@ jobs:
           flutter-version: '3.32.8'
           cache: true
 
-      - name: Create modern Android project
-        run: flutter create --platforms android .
+      - name: Create Android project
+        run: flutter create --platforms=android .
+
+      - name: Add Internet permission
+        run: |
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
+
+      - name: Set Android NDK 27
+        run: |
+          sed -i 's/ndkVersion = flutter.ndkVersion/ndkVersion = "27.0.12077973"/' android/app/build.gradle.kts
 
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Check Supabase key
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "HATA: SUPABASE_PUBLISHABLE_KEY bulunamadi!"
+            exit 1
+          fi
+          echo "Supabase publishable key mevcut."
+
       - name: Build APK
         env:
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-        run: flutter build apk --release --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
+        run: |
+          flutter build apk --release \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
