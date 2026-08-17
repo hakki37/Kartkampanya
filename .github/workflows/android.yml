@@ -1,0 +1,66 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.32.8'
+          cache: true
+
+      - name: Create Android project
+        run: flutter create --platforms=android .
+
+      - name: Set Kart Kampanya as main.dart
+        run: |
+          echo "lib klasoru:"
+          ls -la lib
+
+          if [ ! -f lib/miam.dart ]; then
+            echo "HATA: lib/miam.dart bulunamadi."
+            exit 1
+          fi
+
+          cp lib/miam.dart lib/main.dart
+
+          if [ -f lib/config.dart ]; then
+            echo "config.dart bulundu."
+          fi
+
+          echo "main.dart hazir:"
+          wc -l lib/main.dart
+
+      - name: Add Internet permission
+        run: |
+          grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml ||           sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
+
+      - name: Set Android NDK 27
+        run: |
+          sed -i 's/ndkVersion = flutter.ndkVersion/ndkVersion = "27.0.12077973"/' android/app/build.gradle.kts
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          flutter build apk --release             --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kart-kampanya-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
