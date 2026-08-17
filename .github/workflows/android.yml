@@ -28,12 +28,12 @@ jobs:
           echo "lib klasoru:"
           ls -la lib
 
-          if [ ! -f lib/miam.dart ]; then
-            echo "HATA: lib/miam.dart bulunamadi."
+          if [ ! -f lib/main.dart ]; then
+            echo "HATA: lib/main.dart bulunamadi."
             exit 1
           fi
 
-          cp lib/miam.dart lib/main.dart
+          cp lib/main.dart lib/main.dart
 
           if [ -f lib/config.dart ]; then
             echo "config.dart bulundu."
