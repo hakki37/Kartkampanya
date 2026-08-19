@@ -1492,9 +1492,10 @@ class SmartCampaignCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cards = List<UserCard>.from(
-      campaign['_cards'] ?? const <UserCard>[],
-    );
+    final cards = (campaign['_cards'] as List?)
+        ?.whereType<UserCard>()
+        .toList() ??
+    <UserCard>[];
 
     final reward = campaign['_calculatedReward'] ?? campaign['_reward'];
 
