@@ -418,9 +418,8 @@ class _CampaignsPageState extends State<CampaignsPage> {
 
   Future<List<Map<String, dynamic>>> fetchCampaigns() async {
     final rows = await Supabase.instance.client
-        .from('campaigns')
-        .select()
-        .order('created_at', ascending: false);
+    .from('campaigns')
+    .select();
 
     final list = List<Map<String, dynamic>>.from(rows);
     cachedCampaigns = list;
