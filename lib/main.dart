@@ -418,7 +418,7 @@ class _CampaignsPageState extends State<CampaignsPage> {
 
   Future<List<Map<String, dynamic>>> fetchCampaigns() async {
     final rows = await Supabase.instance.client
-        .from('campaign_rules')
+        .from('campaign')
         .select()
         .order('created_at', ascending: false);
 
