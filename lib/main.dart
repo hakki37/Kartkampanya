@@ -420,6 +420,7 @@ class _CampaignsPageState extends State<CampaignsPage> {
     final rows = await Supabase.instance.client
     .from('campaigns')
     .select();
+    print('KAMPANYA SAYISI: ${rows.length}');
 
     final list = List<Map<String, dynamic>>.from(rows);
     cachedCampaigns = list;
