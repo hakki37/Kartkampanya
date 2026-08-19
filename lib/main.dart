@@ -418,7 +418,7 @@ class _CampaignsPageState extends State<CampaignsPage> {
 
   Future<List<Map<String, dynamic>>> fetchCampaigns() async {
     final rows = await Supabase.instance.client
-    .from('campaign')
+    .from('campaigns')
     .select();
 
     final list = List<Map<String, dynamic>>.from(rows);
