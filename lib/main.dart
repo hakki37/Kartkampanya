@@ -869,11 +869,52 @@ class _CampaignsPageState extends State<CampaignsPage> {
   }
 
   double rewardFor(Map<String, dynamic> campaign) {
-    final reward = _moneyValue(campaign['reward_amount'] ?? 0);
-    final max = _moneyValue(campaign['max_reward'] ?? 0);
+  // Önce veritabanındaki ödül değerini kontrol et
+  final reward = _moneyValue(campaign['reward_amount'] ?? 0);
+  final max = _moneyValue(campaign['max_reward'] ?? 0);
 
+  // Veritabanında gerçek bir ödül varsa onu kullan
+  if (reward > 0) {
     if (max > 0 && reward > max) return max;
     return reward;
+  }
+
+  // Ödül veritabanında yoksa kampanya metninden bul
+  final title = '${campaign['title'] ?? ''}';
+  final campaignText = '${campaign['campaign_text'] ?? ''}';
+  final conditions = '${campaign['conditions'] ?? ''}';
+  final terms = '${campaign['terms'] ?? ''}';
+
+  final text = _norm(
+    '$title $campaignText $conditions $terms',
+  );
+
+  // "100 TL", "600 TL", "450 TL" gibi tutarları bul
+  final matches = RegExp(
+    r'(\d+(?:[.,]\d+)?)\s*TL',
+    caseSensitive: false,
+  ).allMatches(text);
+
+  double bestReward = 0;
+
+  for (final match in matches) {
+    final value = double.tryParse(
+      match.group(1)!.replaceAll(',', '.'),
+    ) ?? 0;
+
+    // Çok büyük değerleri ödül olarak kabul etme
+    // (örn. 2.000 TL minimum harcama)
+    if (value > 0 && value < 10000 && value > bestReward) {
+      bestReward = value;
+    }
+  }
+
+  // Veritabanında maksimum ödül varsa ona göre sınırla
+  if (max > 0 && bestReward > max) {
+    bestReward = max;
+  }
+
+  return bestReward;
   }
 
   double calculatedReward(
