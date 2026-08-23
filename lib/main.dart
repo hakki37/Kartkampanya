@@ -1426,11 +1426,18 @@ class _PlanSummaryCard extends StatelessWidget {
               '$bank • $card',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
-            if (merchant.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 3),
-                child: Text('$merchant kampanyası'),
-              ),
+            Padding(
+  padding: const EdgeInsets.only(top: 3),
+  child: Text(
+    campaign['title']?.toString().trim().isNotEmpty == true
+        ? campaign['title'].toString().trim()
+        : (merchant.isNotEmpty ? '$merchant Kampanyası' : 'Kampanya'),
+    style: const TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+    ),
+  ),
+),
             const SizedBox(height: 10),
             Text('💳 Harcama: ${amount.toStringAsFixed(0)} TL'),
             Text('🎁 Tahmini kazanç: ${calculatedReward.toStringAsFixed(0)} TL'),
