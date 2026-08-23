@@ -417,15 +417,32 @@ class _CampaignsPageState extends State<CampaignsPage> {
   }
 
   Future<List<Map<String, dynamic>>> fetchCampaigns() async {
-    final rows = await Supabase.instance.client
-    .from('campaigns')
-    .select();
-    print('KAMPANYA SAYISI: ${rows.length}');
+  final rows = await Supabase.instance.client
+      .from('campaigns')
+      .select('''
+        id,
+        bank_id,
+        category_id,
+        title,
+        source_url,
+        start_date,
+        end_date
+      ''')
+      .order('id', ascending: false);
 
-    final list = List<Map<String, dynamic>>.from(rows);
-    cachedCampaigns = list;
-    return list;
+  print('KAMPANYA SAYISI: ${rows.length}');
+
+  final list = List<Map<String, dynamic>>.from(rows);
+
+  for (final campaign in list) {
+    campaign['title'] = campaign['title']?.toString() ?? '';
+    campaign['source_url'] = campaign['source_url']?.toString() ?? '';
   }
+
+  cachedCampaigns = list;
+  return list;
+  }
+  
 
   String _norm(String value) {
     return value
