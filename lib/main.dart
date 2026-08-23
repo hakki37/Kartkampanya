@@ -1429,9 +1429,7 @@ class _PlanSummaryCard extends StatelessWidget {
             Padding(
   padding: const EdgeInsets.only(top: 3),
   child: Text(
-    campaign['title']?.toString().trim().isNotEmpty == true
-        ? campaign['title'].toString().trim()
-        : (merchant.isNotEmpty ? '$merchant Kampanyası' : 'Kampanya'),
+    'TITLE TEST: ${campaign['title']}',
     style: const TextStyle(
       fontSize: 18,
       fontWeight: FontWeight.w700,
