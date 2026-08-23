@@ -1745,14 +1745,16 @@ class SmartCampaignCard extends StatelessWidget {
                 const SizedBox(width: 8),
 
                 Expanded(
-                  child: Text(
-                    '$merchant Kampanyası',
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+  child: Text(
+    decodeHtmlEntities(
+      campaign['title']?.toString().trim() ?? '',
+    ),
+    style: const TextStyle(
+      fontSize: 17,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+),
                 IconButton(
                   tooltip: isFavorite
                       ? 'Favoriden çıkar'
