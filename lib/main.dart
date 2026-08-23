@@ -1429,7 +1429,9 @@ class _PlanSummaryCard extends StatelessWidget {
             Padding(
   padding: const EdgeInsets.only(top: 3),
   child: Text(
-    'TITLE TEST: ${campaign['title']}',
+    decodeHtmlEntities(
+      campaign['title']?.toString().trim() ?? '',
+    ),
     style: const TextStyle(
       fontSize: 18,
       fontWeight: FontWeight.w700,
