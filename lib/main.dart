@@ -869,15 +869,95 @@ class _CampaignsPageState extends State<CampaignsPage> {
   }
 
   double rewardFor(Map<String, dynamic> campaign) {
-  // Önce veritabanındaki ödül değerini kontrol et
   final reward = _moneyValue(campaign['reward_amount'] ?? 0);
   final max = _moneyValue(campaign['max_reward'] ?? 0);
 
-  // Veritabanında gerçek bir ödül varsa onu kullan
   if (reward > 0) {
     if (max > 0 && reward > max) return max;
     return reward;
   }
+
+  final title = '${campaign['title'] ?? ''}';
+  final campaignText = '${campaign['campaign_text'] ?? ''}';
+  final conditions = '${campaign['conditions'] ?? ''}';
+  final terms = '${campaign['terms'] ?? ''}';
+
+  final text = _norm(
+    '$title $campaignText $conditions $terms',
+  );
+
+  double bestReward = 0;
+
+  // "1.500 TL'ye varan", "600 TL'ye varan" gibi
+  // toplam ödül ifadelerini yakala.
+  final maxMatches = RegExp(
+    r'(\d+(?:[.,]\d+)?)\s*tl\s*(?:ye|ya|lik|lık)?\s*varan',
+    caseSensitive: false,
+  ).allMatches(text);
+
+  for (final match in maxMatches) {
+    final value = double.tryParse(
+      match.group(1)!.replaceAll('.', '').replaceAll(',', '.'),
+    ) ?? 0;
+
+    if (value > bestReward) {
+      bestReward = value;
+    }
+  }
+
+  // Diğer TL tutarlarını kontrol et.
+  final matches = RegExp(
+    r'(\d+(?:[.,]\d+)?)\s*tl',
+    caseSensitive: false,
+  ).allMatches(text);
+
+  for (final match in matches) {
+    final value = double.tryParse(
+      match.group(1)!.replaceAll('.', '').replaceAll(',', '.'),
+    ) ?? 0;
+
+    if (value <= 0) continue;
+
+    final start = match.start;
+
+    final before = text.substring(
+      start > 80 ? start - 80 : 0,
+      start,
+    );
+
+    // Harcama tutarlarını ödül olarak sayma.
+    final isMinimumSpend =
+        before.contains('harcama') ||
+        before.contains('harcamaya') ||
+        before.contains('harcamadan') ||
+        before.contains('minimum') ||
+        before.contains('alisveris') ||
+        before.contains('alışveriş');
+
+    if (isMinimumSpend) continue;
+
+    final afterEnd = match.end;
+
+    final after = text.substring(
+      afterEnd,
+      afterEnd + 15 > text.length
+          ? text.length
+          : afterEnd + 15,
+    );
+
+    if (after.contains('varan')) continue;
+
+    if (value > bestReward) {
+      bestReward = value;
+    }
+  }
+
+  if (max > 0 && bestReward > max) {
+    bestReward = max;
+  }
+
+  return bestReward;
+}
 
   // Ödül veritabanında yoksa kampanya metninden bul
   final title = '${campaign['title'] ?? ''}';
