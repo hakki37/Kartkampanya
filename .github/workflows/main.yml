@@ -31,6 +31,9 @@ jobs:
       - name: Apply v12 UI polish
         run: python3 scripts/apply-v12-ui.py
 
+      - name: Apply v13 UI fix
+        run: python3 scripts/fix-v13-ui.py
+
       - name: Apply v13 brand logos
         run: python3 scripts/apply-v13-brand-logos.py
 
