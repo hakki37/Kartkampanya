@@ -47,6 +47,22 @@ Future<void> main() async {
   runApp(const KartKampanyaApp());
 }
 
+String _norm(String value) {
+  return value
+      .toLowerCase()
+      .trim()
+      .replaceAll('ı', 'i')
+      .replaceAll('ğ', 'g')
+      .replaceAll('ü', 'u')
+      .replaceAll('ş', 's')
+      .replaceAll('ö', 'o')
+      .replaceAll('ç', 'c');
+}
+
+String campaignSection(Map<String, dynamic> campaign) {
+  return KartKampanyaApp().campaignSection(campaign);
+}
+
 class UserCard {
   final String id;
   final String bank;
