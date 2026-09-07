@@ -23,24 +23,7 @@ jobs:
       - name: Create Android project
         run: flutter create --platforms=android .
 
-      - name: Set Kart Kampanya as main.dart
-        run: |
-          echo "lib klasoru:"
-          ls -la lib
-
-          if [ ! -f lib/main.dart ]; then
-            echo "HATA: lib/main.dart bulunamadi."
-            exit 1
-          fi
-
-          cp lib/main.dart lib/main.dart
-
-          if [ -f lib/config.dart ]; then
-            echo "config.dart bulundu."
-          fi
-
-          echo "main.dart hazir:"
-          wc -l lib/main.dart
+      
 
       - name: Add Internet permission
         run: |
