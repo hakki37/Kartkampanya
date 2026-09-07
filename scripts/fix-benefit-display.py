@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 
 p = Path('lib/main.dart')
 s = p.read_text(encoding='utf-8')
@@ -9,7 +8,7 @@ helper = r'''String _campaignBenefitText(Map<String, dynamic> campaign, dynamic 
   final title = '${campaign['title'] ?? ''}';
   final description = '${campaign['description'] ?? ''}';
   final text = '$title $description';
-  final installment = RegExp(r'(\\d+)\\s*taksit', caseSensitive: false).firstMatch(text);
+  final installment = RegExp(r'(\d+)\s*taksit', caseSensitive: false).firstMatch(text);
   if (installment != null) {
     return '💰 Tahmini avantaj: ${installment.group(1)} taksit';
   }
@@ -28,7 +27,7 @@ helper = r'''String _campaignBenefitText(Map<String, dynamic> campaign, dynamic 
 if 'String _campaignBenefitText(Map<String, dynamic> campaign, dynamic reward)' not in s:
     s = s.replace(marker, helper + marker, 1)
 
-old = "'💰 Tahmini avantaj: \\${(reward as num).toDouble().toStringAsFixed(0)} TL',"
+old = "'💰 Tahmini avantaj: \${(reward as num).toDouble().toStringAsFixed(0)} TL',"
 new = "_campaignBenefitText(campaign, reward),"
 if old in s:
     s = s.replace(old, new, 1)
