@@ -1,28 +1,259 @@
 from pathlib import Path
-import re
-p=Path('lib/main.dart')
-s=p.read_text(encoding='utf-8')
-repls={'0xFF8B5CF6':'0xFF6366F1','0xFF9B7CFF':'0xFF6366F1','0xFF35245F':'0xFF27306B','0xFFC4B5FD':'0xFF885CF6','0xFF15121E':'0xFF111827','0xFF211C2D':'0xFF1E293B','0xFF51466A':'0xFF3B4565','0xFF0D0B14':'0xFF0F172A','0xFF171421':'0xFF111827','0xFF292238':'0xFF293554','0xFF302842':'0xFF33415F','0xFF191622':'0xFF172033','0xFF5B3FA8':'0xFF3949A3','0xFF342B48':'0xFF33415F','0xFF110E18':'0xFF0B1220','0xFF49317A':'0xFF4B3CC4','0xFF8062E8':'0xFF6366F1'}
-for a,b in repls.items(): s=s.replace(a,b)
-s=s.replace('margin: const EdgeInsets.only(bottom: 14),','margin: const EdgeInsets.only(bottom: 8),',1)
-s=s.replace('padding: const EdgeInsets.all(14),\n        child: Column(','padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),\n        child: Column(',1)
-marker='class SmartCampaignCard extends StatelessWidget {'
-if '_MerchantLogo extends StatelessWidget' not in s:
- h='''String? _merchantDomain(String merchant) {\n  final m = _norm(merchant);\n  const domains = <String,String>{\n    'migros':'migros.com.tr','shell':'shell.com.tr','opet':'opet.com.tr','petrol ofisi':'petrolofisi.com.tr','boyner':'boyner.com.tr','trendyol':'trendyol.com','hepsiburada':'hepsiburada.com','amazon':'amazon.com.tr','n11':'n11.com','a101':'a101.com.tr','bim':'bim.com.tr','carrefour':'carrefoursa.com','starbucks':'starbucks.com.tr','nike':'nike.com','apple':'apple.com','teknosa':'teknosa.com','vatan':'vatanbilgisayar.com','mediamarkt':'mediamarkt.com.tr','lc waikiki':'lcwaikiki.com','mavi':'mavi.com','zara':'zara.com','ikea':'ikea.com.tr','pegasus':'flypgs.com','thy':'turkishairlines.com','booking':'booking.com','spotify':'spotify.com','netflix':'netflix.com','steam':'steampowered.com','gastroclub':'gastroclub.com.tr','muhiku':'muhiku.com','enuygun':'enuygun.com',\n  };\n  if (domains.containsKey(m)) return domains[m];\n  for (final e in domains.entries) { if (m.contains(e.key)) return e.value; }\n  return null;\n}\n\nclass _MerchantLogo extends StatelessWidget {\n  final String merchant;\n  const _MerchantLogo({required this.merchant});\n  @override\n  Widget build(BuildContext context) {\n    final domain=_merchantDomain(merchant);\n    final fallback=Container(width:42,height:42,decoration:BoxDecoration(borderRadius:BorderRadius.circular(12),color:Theme.of(context).colorScheme.surfaceContainerHighest),child:Icon(Icons.storefront_rounded,color:Theme.of(context).colorScheme.primary));\n    if(domain==null) return fallback;\n    return ClipRRect(borderRadius:BorderRadius.circular(12),child:Container(width:42,height:42,padding:const EdgeInsets.all(5),color:Colors.white,child:Image.network('https://www.google.com/s2/favicons?domain=$domain&sz=128',fit:BoxFit.contain,errorBuilder:(_,__,___)=>Icon(Icons.storefront_rounded,color:Theme.of(context).colorScheme.primary))));\n  }\n}\n\n'''
- s=s.replace(marker,h+marker)
-pattern=re.compile(r'''            Row\(\n              children: \[\n                Icon\(\n                  cards\.isNotEmpty\n                      \? Icons\.emoji_events\n                      : Icons\.local_offer,\n                \),\n\n                const SizedBox\(width: 8\),\n\n                Expanded\(\n  child: Text\(\n    decodeHtmlEntities\(\n      campaign\['title'\]\?\.toString\(\)\.trim\(\) \?\? '',\n    \),\n    style: const TextStyle\(\n      fontSize: 17,\n      fontWeight: FontWeight\.bold,\n    \),\n  \),\n\),''')
-r='''            Row(\n              crossAxisAlignment: CrossAxisAlignment.start,\n              children: [\n                if (merchant.isNotEmpty) ...[\n                  _MerchantLogo(merchant: merchant),\n                  const SizedBox(width: 9),\n                ] else ...[\n                  Icon(cards.isNotEmpty ? Icons.emoji_events : Icons.local_offer, size: 25),\n                  const SizedBox(width: 8),\n                ],\n                Expanded(\n                  child: Text(\n                    campaignTitle.isNotEmpty ? campaignTitle : '$merchant Kampanyası',\n                    maxLines: 3,\n                    overflow: TextOverflow.ellipsis,\n                    style: const TextStyle(fontSize: 15.5, height: 1.2, fontWeight: FontWeight.w800),\n                  ),\n                ),'''
-s,n=pattern.subn(r,s,count=1)
-if n!=1: raise SystemExit('title row patch not found')
-s=s.replace('onPressed: onFavorite,\n                  icon: Icon(','onPressed: onFavorite,\n                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),\n                  padding: EdgeInsets.zero,\n                  icon: Icon(',1)
-s=s.replace('onPressed: onCompare,\n                  icon: Icon(','onPressed: onCompare,\n                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),\n                  padding: EdgeInsets.zero,\n                  icon: Icon(',1)
-s=s.replace('padding: const EdgeInsets.only(top: 2),\n                child: Wrap(\n                  spacing: 6,\n                  runSpacing: 6,','padding: const EdgeInsets.only(top: 5),\n                child: Wrap(\n                  spacing: 5,\n                  runSpacing: 4,',1)
-s=s.replace("'ℹ️ Bu kampanya kayıtlı kartlarınla eşleşmiyor.'","'ℹ️ Kayıtlı kartlarınla eşleşmiyor'",1)
 
-# Katalog-6 tarzı hızlı kategori şeridi: ikonlu kutular, yatay kaydırma, seçili durumda Mor Mavi vurgu.
-quick_pattern=re.compile(r'''            Wrap\(\n              spacing: 6,\n              runSpacing: 6,\n              children: \[\n                \(\.\.\.showAllQuickCategories \? quick : quick\.take\(6\)\)\.map<Widget>\(.*?\n                ActionChip\(.*?\n                \),\n              \],\n            \),''', re.S)
-quick_replacement='''            SizedBox(\n              height: 76,\n              child: ListView.separated(\n                scrollDirection: Axis.horizontal,\n                physics: const BouncingScrollPhysics(),\n                itemCount: (showAllQuickCategories ? quick : quick.take(6)).length,\n                separatorBuilder: (_, __) => const SizedBox(width: 8),\n                itemBuilder: (context, index) {\n                  final x = (showAllQuickCategories ? quick : quick.take(6)).toList()[index];\n                  final selected = category == x[1];\n                  return InkWell(\n                    borderRadius: BorderRadius.circular(18),\n                    onTap: () {\n                      setState(() {\n                        category = selected ? '' : x[1];\n                      });\n                    },\n                    child: AnimatedContainer(\n                      duration: const Duration(milliseconds: 160),\n                      width: 92,\n                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),\n                      decoration: BoxDecoration(\n                        gradient: selected\n                            ? const LinearGradient(\n                                colors: [Color(0xFF6366F1), Color(0xFF885CF6)],\n                              )\n                            : null,\n                        color: selected ? null : const Color(0xFF172033),\n                        borderRadius: BorderRadius.circular(18),\n                        border: Border.all(\n                          color: selected ? const Color(0xFF8B9CFF) : const Color(0xFF33415F),\n                        ),\n                        boxShadow: selected\n                            ? const [BoxShadow(blurRadius: 12, spreadRadius: -5)]\n                            : const [],\n                      ),\n                      child: Column(\n                        mainAxisAlignment: MainAxisAlignment.center,\n                        children: [\n                          Text(x[0], style: const TextStyle(fontSize: 24)),\n                          const SizedBox(height: 3),\n                          Text(\n                            x[1],\n                            maxLines: 1,\n                            overflow: TextOverflow.ellipsis,\n                            textAlign: TextAlign.center,\n                            style: TextStyle(\n                              fontSize: 11.5,\n                              fontWeight: FontWeight.w800,\n                              color: selected ? Colors.white : const Color(0xFFEDE8F8),\n                            ),\n                          ),\n                        ],\n                      ),\n                    ),\n                  );\n                },\n              ),\n            ),\n\n            const SizedBox(height: 8),\n\n            ActionChip(\n              visualDensity: const VisualDensity(horizontal: -1, vertical: -2),\n              avatar: Icon(\n                showAllQuickCategories ? Icons.expand_less_rounded : Icons.expand_more_rounded,\n                size: 18,\n              ),\n              label: Text(\n                showAllQuickCategories ? 'Daha az' : 'Tüm kategoriler (${quick.length})',\n                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),\n              ),\n              onPressed: () {\n                setState(() {\n                  showAllQuickCategories = !showAllQuickCategories;\n                });\n              },\n            ),'''
-s,n=quick_pattern.subn(quick_replacement,s,count=1)
-if n!=1: raise SystemExit('quick category block not found')
-p.write_text(s,encoding='utf-8')
-print('v12 category strip updated')
+p = Path('lib/main.dart')
+s = p.read_text(encoding='utf-8')
+
+# V12: Mor-Mavi + compact cards + merchant logos.
+repls = {
+    '0xFF8B5CF6': '0xFF6366F1',
+    '0xFF9B7CFF': '0xFF6366F1',
+    '0xFF35245F': '0xFF27306B',
+    '0xFFC4B5FD': '0xFF885CF6',
+    '0xFF15121E': '0xFF111827',
+    '0xFF211C2D': '0xFF1E293B',
+    '0xFF51466A': '0xFF3B4565',
+    '0xFF0D0B14': '0xFF0F172A',
+    '0xFF171421': '0xFF111827',
+    '0xFF292238': '0xFF293554',
+    '0xFF302842': '0xFF33415F',
+    '0xFF191622': '0xFF172033',
+    '0xFF5B3FA8': '0xFF3949A3',
+    '0xFF342B48': '0xFF33415F',
+    '0xFF110E18': '0xFF0B1220',
+    '0xFF49317A': '0xFF4B3CC4',
+    '0xFF8062E8': '0xFF6366F1',
+}
+for a, b in repls.items():
+    s = s.replace(a, b)
+
+s = s.replace(
+    'margin: const EdgeInsets.only(bottom: 14),',
+    'margin: const EdgeInsets.only(bottom: 8),',
+    1,
+)
+s = s.replace(
+    'padding: const EdgeInsets.all(14),\n        child: Column(',
+    'padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),\n        child: Column(',
+    1,
+)
+
+# Merchant logo helper.
+marker = 'class SmartCampaignCard extends StatelessWidget {'
+if '_MerchantLogo extends StatelessWidget' not in s:
+    helper = r'''String? _merchantDomain(String merchant) {
+  final m = _norm(merchant);
+  const domains = <String, String>{
+    'migros': 'migros.com.tr', 'shell': 'shell.com.tr', 'opet': 'opet.com.tr',
+    'petrol ofisi': 'petrolofisi.com.tr', 'boyner': 'boyner.com.tr',
+    'trendyol': 'trendyol.com', 'hepsiburada': 'hepsiburada.com',
+    'amazon': 'amazon.com.tr', 'n11': 'n11.com', 'a101': 'a101.com.tr',
+    'bim': 'bim.com.tr', 'carrefour': 'carrefoursa.com', 'starbucks': 'starbucks.com.tr',
+    'nike': 'nike.com', 'apple': 'apple.com', 'teknosa': 'teknosa.com',
+    'vatan': 'vatanbilgisayar.com', 'mediamarkt': 'mediamarkt.com.tr',
+    'lc waikiki': 'lcwaikiki.com', 'mavi': 'mavi.com', 'zara': 'zara.com',
+    'ikea': 'ikea.com.tr', 'pegasus': 'flypgs.com', 'thy': 'turkishairlines.com',
+    'booking': 'booking.com', 'spotify': 'spotify.com', 'netflix': 'netflix.com',
+    'steam': 'steampowered.com', 'gastroclub': 'gastroclub.com.tr',
+    'muhiku': 'muhiku.com', 'enuygun': 'enuygun.com',
+  };
+  if (domains.containsKey(m)) return domains[m];
+  for (final e in domains.entries) {
+    if (m.contains(e.key)) return e.value;
+  }
+  return null;
+}
+
+class _MerchantLogo extends StatelessWidget {
+  final String merchant;
+  const _MerchantLogo({required this.merchant});
+
+  @override
+  Widget build(BuildContext context) {
+    final domain = _merchantDomain(merchant);
+    final fallback = Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      ),
+      child: Icon(Icons.storefront_rounded, color: Theme.of(context).colorScheme.primary),
+    );
+    if (domain == null) return fallback;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 42,
+        height: 42,
+        padding: const EdgeInsets.all(5),
+        color: Colors.white,
+        child: Image.network(
+          'https://www.google.com/s2/favicons?domain=$domain&sz=128',
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Icon(Icons.storefront_rounded, color: Theme.of(context).colorScheme.primary),
+        ),
+      ),
+    );
+  }
+}
+
+'''
+    s = s.replace(marker, helper + marker, 1)
+
+# Compact campaign title row.
+old_title = '''            Row(
+              children: [
+                Icon(
+                  cards.isNotEmpty
+                      ? Icons.emoji_events
+                      : Icons.local_offer,
+                ),
+
+                const SizedBox(width: 8),
+
+                Expanded(
+  child: Text(
+    decodeHtmlEntities(
+      campaign['title']?.toString().trim() ?? '',
+    ),
+    style: const TextStyle(
+      fontSize: 17,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+),'''
+new_title = '''            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (merchant.isNotEmpty) ...[
+                  _MerchantLogo(merchant: merchant),
+                  const SizedBox(width: 9),
+                ] else ...[
+                  Icon(cards.isNotEmpty ? Icons.emoji_events : Icons.local_offer, size: 25),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: Text(
+                    campaignTitle.isNotEmpty ? campaignTitle : '$merchant Kampanyası',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 15.5, height: 1.2, fontWeight: FontWeight.w800),
+                  ),
+                ),'''
+if old_title in s:
+    s = s.replace(old_title, new_title, 1)
+
+# Make action icons compact if their exact lines exist.
+s = s.replace(
+    'onPressed: onFavorite,\n                  icon: Icon(',
+    'onPressed: onFavorite,\n                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),\n                  padding: EdgeInsets.zero,\n                  icon: Icon(',
+    1,
+)
+s = s.replace(
+    'onPressed: onCompare,\n                  icon: Icon(',
+    'onPressed: onCompare,\n                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),\n                  padding: EdgeInsets.zero,\n                  icon: Icon(',
+    1,
+)
+
+# Keep badge row tight.
+s = s.replace(
+    'padding: const EdgeInsets.only(top: 2),\n                child: Wrap(\n                  spacing: 6,\n                  runSpacing: 6,',
+    'padding: const EdgeInsets.only(top: 5),\n                child: Wrap(\n                  spacing: 5,\n                  runSpacing: 4,',
+    1,
+)
+s = s.replace('ℹ️ Bu kampanya kayıtlı kartlarınla eşleşmiyor.', 'ℹ️ Kayıtlı kartlarınla eşleşmiyor', 1)
+
+# Replace only the quick-category Wrap following the Hızlı kategoriler heading.
+anchor = "            const Text(\n              'Hızlı kategoriler',"
+anchor_pos = s.find(anchor)
+if anchor_pos == -1:
+    raise SystemExit('quick category heading not found')
+wrap_start = s.find('            Wrap(\n', anchor_pos)
+if wrap_start == -1:
+    raise SystemExit('quick category Wrap start not found')
+end_marker = '            const SizedBox(height: 14),\n\n            Wrap('
+wrap_end = s.find(end_marker, wrap_start)
+if wrap_end == -1:
+    raise SystemExit('quick category Wrap end marker not found')
+
+replacement = '''            SizedBox(
+              height: 76,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: (showAllQuickCategories ? quick : quick.take(6)).length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final items = (showAllQuickCategories ? quick : quick.take(6)).toList();
+                  final x = items[index];
+                  final selected = category == x[1];
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () {
+                      setState(() {
+                        category = selected ? '' : x[1];
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      width: 92,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                      decoration: BoxDecoration(
+                        gradient: selected
+                            ? const LinearGradient(
+                                colors: [Color(0xFF6366F1), Color(0xFF885CF6)],
+                              )
+                            : null,
+                        color: selected ? null : const Color(0xFF172033),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: selected ? const Color(0xFF8B9CFF) : const Color(0xFF33415F),
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(x[0], style: const TextStyle(fontSize: 24)),
+                          const SizedBox(height: 3),
+                          Text(
+                            x[1],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                              color: selected ? Colors.white : const Color(0xFFEDE8F8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            ActionChip(
+              visualDensity: const VisualDensity(horizontal: -1, vertical: -2),
+              avatar: Icon(
+                showAllQuickCategories ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                size: 18,
+              ),
+              label: Text(
+                showAllQuickCategories ? 'Daha az' : 'Tüm kategoriler (${quick.length})',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+              ),
+              onPressed: () {
+                setState(() {
+                  showAllQuickCategories = !showAllQuickCategories;
+                });
+              },
+            ),
+'''
+s = s[:wrap_start] + replacement + s[wrap_end:]
+
+p.write_text(s, encoding='utf-8')
+print('v12 UI applied successfully')
