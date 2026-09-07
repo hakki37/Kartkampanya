@@ -1493,26 +1493,104 @@ class _CampaignsPageState extends State<CampaignsPage> {
                         ),
                       ),
 
-                    ...rows.map<Widget>(
-                      (campaign) => SmartCampaignCard(
-                        campaign: campaign,
-                        isFavorite: favoriteIds.contains(
-                          campaignId(campaign),
-                        ),
-                        isCompared: compareIds.contains(
-                          campaignId(campaign),
-                        ),
-                        showAllCampaigns: showAllCampaigns,
-                        expiringSoon: isExpiringSoon(campaign),
-                        daysRemaining: daysLeft(campaign),
-                        onFavorite: () => toggleFavorite(campaign),
-                        onCompare: () => toggleCompare(campaign),
-                        onOpenUrl: openCampaignUrl,
-                        requiredSteps: requiredSteps(campaign),
-                        completedSteps: currentProgress(campaign),
-                        onProgressChange: (delta) => changeProgress(campaign, delta),
-                      ),
-                    ),
+...(() {
+  final grouped = <String, List<Map<String, dynamic>>>{};
+
+  for (final campaign in rows) {
+    final section = campaignSection(campaign);
+
+    grouped.putIfAbsent(section, () => <Map<String, dynamic>>[]);
+    grouped[section]!.add(campaign);
+  }
+
+  final orderedSections = <String>[];
+
+  // Önce bizim kategori sıramız
+  for (final x in quick) {
+    final name = x[1];
+
+    if (grouped.containsKey(name)) {
+      orderedSections.add(name);
+    }
+  }
+
+  // Sonra diğer kategoriler
+  for (final name in grouped.keys) {
+    if (!orderedSections.contains(name)) {
+      orderedSections.add(name);
+    }
+  }
+
+  return orderedSections.expand<Widget>((section) {
+    final campaigns = grouped[section]!;
+
+    final emoji = quick
+        .where((x) => x[1] == section)
+        .map((x) => x[0])
+        .firstOrNull ?? '🏷️';
+
+    return [
+      Padding(
+        padding: const EdgeInsets.only(
+          top: 18,
+          bottom: 10,
+        ),
+        child: Row(
+          children: [
+            Text(
+              emoji,
+              style: const TextStyle(fontSize: 22),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                section,
+                style: const TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            Text(
+              '${campaigns.length} kampanya',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+
+      ...campaigns.map<Widget>(
+        (campaign) => SmartCampaignCard(
+          campaign: campaign,
+          isFavorite: favoriteIds.contains(
+            campaignId(campaign),
+          ),
+          isCompared: compareIds.contains(
+            campaignId(campaign),
+          ),
+          showAllCampaigns: showAllCampaigns,
+          expiringSoon: isExpiringSoon(campaign),
+          daysRemaining: daysLeft(campaign),
+          onFavorite: () => toggleFavorite(campaign),
+          onCompare: () => toggleCompare(campaign),
+          onOpenUrl: openCampaignUrl,
+          requiredSteps: requiredSteps(campaign),
+          completedSteps: currentProgress(campaign),
+          onProgressChange: (delta) =>
+              changeProgress(campaign, delta),
+        ),
+      ),
+    ];
+  });
+})(),
+
+                    
                   ],
                 );
               },
