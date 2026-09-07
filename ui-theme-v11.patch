@@ -1,3 +1,232 @@
 --- lib/main.dart
 +++ lib/main.dart
-@@ -1,3 +1,3 @@
+@@ -169,19 +169,81 @@
+       title: 'Kart Kampanya',
+       theme: ThemeData(
+         useMaterial3: true,
++        brightness: Brightness.dark,
+         colorScheme: ColorScheme.fromSeed(
+-          seedColor: const Color(0xFF5B4BDB),
+-          brightness: Brightness.light,
++          seedColor: const Color(0xFF8B5CF6),
++          brightness: Brightness.dark,
++        ).copyWith(
++          primary: const Color(0xFF9B7CFF),
++          onPrimary: Colors.white,
++          primaryContainer: const Color(0xFF35245F),
++          onPrimaryContainer: const Color(0xFFEDE7FF),
++          secondary: const Color(0xFFC4B5FD),
++          onSecondary: const Color(0xFF24173D),
++          surface: const Color(0xFF15121E),
++          surfaceContainerHighest: const Color(0xFF211C2D),
++          outline: const Color(0xFF51466A),
+         ),
+-        scaffoldBackgroundColor: const Color(0xFFF6F7FB),
++        scaffoldBackgroundColor: const Color(0xFF0D0B14),
+         appBarTheme: const AppBarTheme(
+           elevation: 0,
+-          backgroundColor: Colors.transparent,
++          backgroundColor: Color(0xFF0D0B14),
++          foregroundColor: Color(0xFFF7F3FF),
++          centerTitle: false,
+         ),
+-        cardTheme: const CardThemeData(
++        cardTheme: CardThemeData(
+           elevation: 0,
+           margin: EdgeInsets.zero,
++          color: const Color(0xFF171421),
+           surfaceTintColor: Colors.transparent,
++          shape: RoundedRectangleBorder(
++            borderRadius: BorderRadius.circular(18),
++            side: const BorderSide(color: Color(0xFF292238)),
++          ),
++        ),
++        inputDecorationTheme: InputDecorationTheme(
++          filled: true,
++          fillColor: const Color(0xFF15121E),
++          hintStyle: const TextStyle(color: Color(0xFF9B93AA)),
++          prefixIconColor: const Color(0xFFC4B5FD),
++          suffixIconColor: const Color(0xFFC4B5FD),
++          border: OutlineInputBorder(
++            borderRadius: BorderRadius.circular(16),
++            borderSide: const BorderSide(color: Color(0xFF302842)),
++          ),
++          enabledBorder: OutlineInputBorder(
++            borderRadius: BorderRadius.circular(16),
++            borderSide: const BorderSide(color: Color(0xFF302842)),
++          ),
++          focusedBorder: OutlineInputBorder(
++            borderRadius: BorderRadius.circular(16),
++            borderSide: const BorderSide(color: Color(0xFF9B7CFF), width: 1.4),
++          ),
++        ),
++        chipTheme: ChipThemeData(
++          backgroundColor: const Color(0xFF191622),
++          selectedColor: const Color(0xFF5B3FA8),
++          side: const BorderSide(color: Color(0xFF342B48)),
++          labelStyle: const TextStyle(color: Color(0xFFEDE8F8)),
++          secondaryLabelStyle: const TextStyle(color: Colors.white),
++          shape: RoundedRectangleBorder(
++            borderRadius: BorderRadius.circular(16),
++          ),
++        ),
++        navigationBarTheme: const NavigationBarThemeData(
++          backgroundColor: Color(0xFF110E18),
++          indicatorColor: Color(0xFF49317A),
++          elevation: 0,
++          labelTextStyle: WidgetStatePropertyAll(
++            TextStyle(fontWeight: FontWeight.w700),
++          ),
++          iconTheme: WidgetStatePropertyAll(
++            IconThemeData(color: Color(0xFFD8CFF0)),
++          ),
++        ),
++        floatingActionButtonTheme: const FloatingActionButtonThemeData(
++          backgroundColor: Color(0xFF8062E8),
++          foregroundColor: Colors.white,
+         ),
+       ),
+       home: const AuthGate(),
+@@ -2018,6 +2080,122 @@
+   return 'Kampanya koşulları bulunamadı.';
+ }
+ 
++class _BrandBadge extends StatelessWidget {
++  final String label;
++  final bool compact;
++
++  const _BrandBadge({
++    required this.label,
++    this.compact = false,
++  });
++
++  @override
++  Widget build(BuildContext context) {
++    final normalized = _norm(label);
++    final isNetwork = normalized == 'visa' ||
++        normalized == 'mastercard' ||
++        normalized == 'troy';
++
++    final Color foreground;
++    final Color background;
++    final IconData? icon;
++
++    switch (normalized) {
++      case 'axess':
++        foreground = const Color(0xFFFFD54F);
++        background = const Color(0xFF3B2A00);
++        icon = Icons.credit_card_rounded;
++        break;
++      case 'bonus':
++        foreground = const Color(0xFF7CFFB2);
++        background = const Color(0xFF073D26);
++        icon = Icons.stars_rounded;
++        break;
++      case 'world':
++        foreground = const Color(0xFF8CC8FF);
++        background = const Color(0xFF082C52);
++        icon = Icons.public_rounded;
++        break;
++      case 'maximum':
++        foreground = const Color(0xFF7DB7FF);
++        background = const Color(0xFF092C57);
++        icon = Icons.auto_awesome_rounded;
++        break;
++      case 'paraf':
++        foreground = const Color(0xFFFF9AC1);
++        background = const Color(0xFF4B102A);
++        icon = Icons.account_balance_wallet_rounded;
++        break;
++      case 'bankkart':
++        foreground = const Color(0xFFFFD76A);
++        background = const Color(0xFF443400);
++        icon = Icons.account_balance_rounded;
++        break;
++      case 'saglam kart':
++      case 'sağlam kart':
++        foreground = const Color(0xFF8FE3FF);
++        background = const Color(0xFF073447);
++        icon = Icons.shield_rounded;
++        break;
++      case 'cepteteb':
++        foreground = const Color(0xFF73D7FF);
++        background = const Color(0xFF063A50);
++        icon = Icons.phone_android_rounded;
++        break;
++      case 'visa':
++        foreground = const Color(0xFF9FC4FF);
++        background = const Color(0xFF0A2D66);
++        icon = Icons.credit_card_rounded;
++        break;
++      case 'mastercard':
++        foreground = const Color(0xFFFFB0A8);
++        background = const Color(0xFF521713);
++        icon = Icons.credit_card_rounded;
++        break;
++      case 'troy':
++        foreground = const Color(0xFF7FE7D3);
++        background = const Color(0xFF063D36);
++        icon = Icons.credit_card_rounded;
++        break;
++      default:
++        foreground = Theme.of(context).colorScheme.onSurfaceVariant;
++        background = Theme.of(context).colorScheme.surfaceContainerHighest;
++        icon = isNetwork ? Icons.credit_card_rounded : Icons.credit_card_outlined;
++    }
++
++    final text = label.trim();
++    if (text.isEmpty) return const SizedBox.shrink();
++
++    return Container(
++      padding: EdgeInsets.symmetric(
++        horizontal: compact ? 8 : 10,
++        vertical: compact ? 5 : 6,
++      ),
++      decoration: BoxDecoration(
++        color: background,
++        borderRadius: BorderRadius.circular(9),
++        border: Border.all(color: foreground.withOpacity(.32)),
++      ),
++      child: Row(
++        mainAxisSize: MainAxisSize.min,
++        children: [
++          Icon(icon, size: compact ? 13 : 14, color: foreground),
++          const SizedBox(width: 5),
++          Text(
++            text.toUpperCase(),
++            style: TextStyle(
++              color: foreground,
++              fontSize: compact ? 10 : 10.5,
++              fontWeight: FontWeight.w900,
++              letterSpacing: .35,
++            ),
++          ),
++        ],
++      ),
++    );
++  }
++}
++
+ class SmartCampaignCard extends StatelessWidget {
+   final Map<String, dynamic> campaign;
+   final bool isFavorite;
+@@ -2317,6 +2495,19 @@
+               ],
+             ),
+ 
++            if (cardName.isNotEmpty || network.isNotEmpty)
++              Padding(
++                padding: const EdgeInsets.only(top: 2),
++                child: Wrap(
++                  spacing: 6,
++                  runSpacing: 6,
++                  children: [
++                    if (cardName.isNotEmpty) _BrandBadge(label: cardName),
++                    if (network.isNotEmpty) _BrandBadge(label: network),
++                  ],
++                ),
++              ),
++
+             if (expiringSoon)
+               Container(
+                 margin: const EdgeInsets.only(top: 10),
