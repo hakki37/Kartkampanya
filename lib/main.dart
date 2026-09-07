@@ -88,12 +88,7 @@ String campaignSection(Map<String, dynamic> campaign) {
   final existing = '${campaign['category'] ?? ''}'.trim();
 
   if (existing.isNotEmpty) {
-    for (final x in quick) {
-      if (_norm(existing) == _norm(x[1])) {
-        return x[1];
-      }
-    }
-    return existing;
+  return existing;
   }
 
   final text = _norm([
