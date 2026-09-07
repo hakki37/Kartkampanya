@@ -23,11 +23,14 @@ jobs:
       - name: Create Android project
         run: flutter create --platforms=android .
 
-      
+      - name: Apply v11 UI patch
+        run: |
+          git apply --check ui-theme-v11.patch
+          git apply ui-theme-v11.patch
 
       - name: Add Internet permission
         run: |
-          grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml ||           sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
 
       - name: Set Android NDK 27
         run: |
@@ -40,7 +43,7 @@ jobs:
         env:
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          flutter build apk --release             --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
+          flutter build apk --release --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
