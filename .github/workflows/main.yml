@@ -37,8 +37,8 @@ jobs:
       - name: Apply v13 brand logos
         run: python3 scripts/apply-v13-brand-logos.py
 
-      - name: Apply v14 logo polish
-        run: python3 scripts/apply-v14-logo-polish.py
+      - name: Apply v14 final catalog UI
+        run: python3 scripts/apply-v14-final.py
 
       - name: Add Internet permission
         run: |
