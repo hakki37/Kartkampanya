@@ -68,6 +68,89 @@ class UserCard {
 class KartKampanyaApp extends StatelessWidget {
   const KartKampanyaApp({super.key});
 
+String campaignSection(Map<String, dynamic> campaign) {
+  final existing = '${campaign['category'] ?? ''}'.trim();
+
+  if (existing.isNotEmpty) {
+    for (final x in quick) {
+      if (_norm(existing) == _norm(x[1])) {
+        return x[1];
+      }
+    }
+    return existing;
+  }
+
+  final text = _norm([
+    campaign['title'],
+    campaign['merchant'],
+    campaign['campaign_text'],
+    campaign['conditions'],
+    campaign['terms'],
+    campaign['description'],
+  ].where((x) => x != null).join(' '));
+
+  const sections = <String, List<String>>{
+    'Akaryakıt': [
+      'benzin', 'motorin', 'mazot', 'lpg', 'akaryakıt',
+      'akaryakit', 'shell', 'opet', 'petrol ofisi', 'bp',
+    ],
+    'Otomotiv': [
+      'lastik', 'jant', 'oto servis', 'otomotiv', 'araç bakım',
+      'arac bakim', 'yedek parça', 'yedek parca',
+    ],
+    'Market': [
+      'market', 'migros', 'carrefour', 'bim', 'a101', 'şok',
+    ],
+    'Restoran': [
+      'restoran', 'restaurant', 'yemek', 'hamburger', 'burger',
+      'pizza', 'döner', 'doner', 'kebap', 'lahmacun', 'pide',
+      'cafe', 'kafe',
+    ],
+    'E-ticaret': [
+      'trendyol', 'hepsiburada', 'amazon', 'n11', 'çiçeksepeti',
+      'ciceksepeti', 'e-ticaret', 'eticaret', 'online alışveriş',
+      'online alisveris',
+    ],
+    'Elektronik': [
+      'telefon', 'iphone', 'samsung', 'xiaomi', 'tablet',
+      'laptop', 'bilgisayar', 'televizyon', 'teknoloji',
+      'mediamarkt', 'teknosa', 'vatan',
+    ],
+    'Giyim': [
+      'giyim', 'kıyafet', 'kiyafet', 'ayakkabı', 'ayakkabi',
+      'zara', 'mavi', 'boyner', 'defacto', 'lc waikiki',
+    ],
+    'Ev & Yaşam': [
+      'mobilya', 'koltuk', 'mutfak', 'banyo', 'dekorasyon',
+      'ikea', 'koçtaş', 'koctas', 'english home',
+    ],
+    'Seyahat': [
+      'uçak', 'ucak', 'uçuş', 'ucus', 'otel', 'tatil',
+      'seyahat', 'thy', 'pegasus', 'booking',
+    ],
+    'Eğlence': [
+      'sinema', 'film', 'tiyatro', 'konser', 'biletix',
+      'netflix', 'spotify', 'steam',
+    ],
+    'Sağlık & Kişisel Bakım': [
+      'eczane', 'ilaç', 'ilac', 'kozmetik', 'parfüm',
+      'parfum', 'kuaför', 'kuafor', 'berber',
+    ],
+    'Spor': [
+      'spor', 'fitness', 'gym', 'spor salonu', 'bisiklet',
+    ],
+  };
+
+  for (final entry in sections.entries) {
+    if (entry.value.any(text.contains)) {
+      return entry.key;
+    }
+  }
+
+  return 'Diğer Kampanyalar';
+}
+
+  
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
