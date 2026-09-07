@@ -40,6 +40,9 @@ jobs:
       - name: Apply v14 final catalog UI
         run: python3 scripts/apply-v14-final.py
 
+      - name: Fix v14 generated Dart syntax
+        run: python3 scripts/fix-v14-syntax.py
+
       - name: Fix benefit display
         run: python3 scripts/fix-benefit-display.py
 
