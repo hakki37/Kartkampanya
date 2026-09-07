@@ -46,6 +46,9 @@ jobs:
       - name: Fix benefit display
         run: python3 scripts/fix-benefit-display.py
 
+      - name: Apply v15 exact catalog UI
+        run: python3 scripts/apply-v15-catalog-ui.py
+
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
