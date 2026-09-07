@@ -37,6 +37,9 @@ jobs:
       - name: Apply v13 brand logos
         run: python3 scripts/apply-v13-brand-logos.py
 
+      - name: Apply v14 logo polish
+        run: python3 scripts/apply-v14-logo-polish.py
+
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
