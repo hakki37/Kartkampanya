@@ -28,6 +28,9 @@ jobs:
           git apply --check -p0 ui-theme-v11.patch
           git apply -p0 ui-theme-v11.patch
 
+      - name: Apply v12 UI polish
+        run: python3 scripts/apply-v12-ui.py
+
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
