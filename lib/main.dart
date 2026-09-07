@@ -502,6 +502,7 @@ class _CampaignsPageState extends State<CampaignsPage> {
   void initState() {
     super.initState();
     future = fetchCampaigns();
+    _loadUserState();
   }
 
   @override
@@ -510,156 +511,263 @@ class _CampaignsPageState extends State<CampaignsPage> {
     super.dispose();
   }
 
+  Future<void> _loadUserState() async {
+    final uid = Supabase.instance.client.auth.currentUser?.id;
+    if (uid == null) return;
+
+    try {
+      final results = await Future.wait([
+        Supabase.instance.client
+            .from('user_favorites')
+            .select('campaign_id')
+            .eq('user_id', uid),
+        Supabase.instance.client
+            .from('campaign_progress')
+            .select('campaign_id, progress')
+            .eq('user_id', uid),
+      ]);
+
+      if (!mounted) return;
+
+      final favoriteRows = List<Map<String, dynamic>>.from(results[0]);
+      final progressRows = List<Map<String, dynamic>>.from(results[1]);
+
+      setState(() {
+        favoriteIds
+          ..clear()
+          ..addAll(favoriteRows
+              .map((row) => '${row['campaign_id'] ?? ''}'.trim())
+              .where((id) => id.isNotEmpty));
+
+        campaignProgress
+          ..clear()
+          ..addEntries(progressRows.map((row) {
+            final id = '${row['campaign_id'] ?? ''}'.trim();
+            final value = int.tryParse('${row['progress'] ?? 0}') ?? 0;
+            return MapEntry(id, value);
+          }).where((entry) => entry.key.isNotEmpty));
+      });
+    } catch (_) {
+      // State tables may not have been migrated yet. The app remains usable;
+      // once the included Supabase migration is applied, state becomes durable.
+    }
+  }
+
+  Future<void> _persistFavorite(String id, bool enabled) async {
+    final uid = Supabase.instance.client.auth.currentUser?.id;
+    if (uid == null || id.isEmpty) return;
+
+    try {
+      if (enabled) {
+        await Supabase.instance.client.from('user_favorites').upsert({
+          'user_id': uid,
+          'campaign_id': int.tryParse(id) ?? id,
+        });
+      } else {
+        await Supabase.instance.client
+            .from('user_favorites')
+            .delete()
+            .eq('user_id', uid)
+            .eq('campaign_id', int.tryParse(id) ?? id);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Favori kaydedilemedi: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _persistProgress(String id, int progress) async {
+    final uid = Supabase.instance.client.auth.currentUser?.id;
+    if (uid == null || id.isEmpty) return;
+
+    try {
+      await Supabase.instance.client.from('campaign_progress').upsert({
+        'user_id': uid,
+        'campaign_id': int.tryParse(id) ?? id,
+        'progress': progress,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('İlerleme kaydedilemedi: $e')),
+        );
+      }
+    }
+  }
+
+  bool _isBlockedCampaign(Map<String, dynamic> campaign) {
+    final title = _norm('${campaign['title'] ?? ''}');
+    final merchant = _norm('${campaign['merchant'] ?? ''}');
+    final description = _norm('${campaign['description'] ?? ''}');
+
+    // Legal/help/product-operation pages must never enter the campaign feed.
+    // We intentionally check the title first so a legitimate campaign whose
+    // terms mention "dijital kart" is not discarded.
+    const blockedTitleParts = <String>[
+      'kvkk',
+      'aydinlatma metni',
+      'cerez politikasi',
+      'gizlilik politikasi',
+      'kredi karti yonetmelik',
+      'yonetmelik degisikligi',
+      'sifre belirleme',
+      'sifre degistirme',
+      'dijital kart',
+      'internet alisveris yetkisi',
+      'dijital platform odeme talimatlari',
+      'visa tek tikla ode',
+      'test kampany',
+      'kampanya test',
+      'kullanim kosullari',
+    ];
+
+    if (blockedTitleParts.any(title.contains)) return true;
+
+    // Legal pages sometimes have a generic title but distinctive legal text.
+    final legalText = '$title $merchant $description';
+    const legalParts = <String>[
+      'kvkk aydinlatma',
+      'cerez politikasi',
+      'gizlilik politikasi',
+      'yonetmelik degisikligi',
+    ];
+    return legalParts.any(legalText.contains);
+  }
+
+  bool _isRealCampaign(Map<String, dynamic> campaign) {
+    final title = '${campaign['title'] ?? ''}'.trim();
+    final sourceUrl = '${campaign['source_url'] ?? campaign['detail_url'] ?? campaign['url'] ?? ''}'.trim();
+    if (title.isEmpty || sourceUrl.isEmpty) return false;
+    if (_isBlockedCampaign(campaign)) return false;
+
+    final active = campaign['is_active'];
+    if (active is bool && !active) return false;
+
+    final start = parseCampaignDate('${campaign['start_date'] ?? ''}');
+    final end = parseCampaignDate('${campaign['end_date'] ?? ''}');
+    final today = DateTime.now();
+    final day = DateTime(today.year, today.month, today.day);
+    if (start != null && start.isAfter(day)) return false;
+    if (end != null && end.isBefore(day)) return false;
+
+    final bankId = '${campaign['bank_id'] ?? ''}'.trim();
+    final bankName = '${campaign['bank_name'] ?? ''}'.trim();
+    if (bankId.isEmpty && bankName.isEmpty) return false;
+
+    return true;
+  }
+
   Future<List<Map<String, dynamic>>> fetchCampaigns() async {
-    // Kampanyanın zengin içeriği campaigns tablosundan,
-    // banka/kart uygunluk kuralları campaign_rules tablosundan gelir.
+    final client = Supabase.instance.client;
+
     final results = await Future.wait([
-      Supabase.instance.client
-          .from('campaigns')
-          .select('*')
-          .order('id', ascending: false),
-      Supabase.instance.client
-          .from('campaign_rules')
-          .select('*'),
-      Supabase.instance.client
-          .from('banks')
-          .select('*'),
+      client.from('active_campaigns').select('*').order('id', ascending: false),
+      client.from('campaign_rules').select('*'),
+      client.from('banks').select('*').order('name'),
+      client.from('categories').select('*'),
     ]);
 
-    final list = List<Map<String, dynamic>>.from(results[0]);
+    final rawList = List<Map<String, dynamic>>.from(results[0]);
     final rules = List<Map<String, dynamic>>.from(results[1]);
     final bankRows = List<Map<String, dynamic>>.from(results[2]);
+    final categoryRows = List<Map<String, dynamic>>.from(results[3]);
 
-    // campaigns.bank_id -> gerçek banka adı. Böylece bank_name NULL olsa bile
-    // kampanya yanlışlıkla kullanıcının bütün kartlarına uygun görünmez.
     final bankNames = <String, String>{};
     for (final bank in bankRows) {
       final id = '${bank['id'] ?? ''}'.trim();
       final name = '${bank['name'] ?? bank['bank_name'] ?? ''}'.trim();
-      if (id.isNotEmpty && name.isNotEmpty) {
-        bankNames[id] = name;
-      }
+      if (id.isNotEmpty && name.isNotEmpty) bankNames[id] = name;
     }
 
-    String normValue(dynamic value) {
-      return _norm('${value ?? ''}');
+    final categoryNames = <String, String>{};
+    for (final row in categoryRows) {
+      final id = '${row['id'] ?? ''}'.trim();
+      final name = '${row['name'] ?? ''}'.trim();
+      if (id.isNotEmpty && name.isNotEmpty) categoryNames[id] = name;
     }
 
-    bool sameText(dynamic a, dynamic b) {
-      final x = normValue(a);
-      final y = normValue(b);
-      return x.isNotEmpty && y.isNotEmpty && (x == y || x.contains(y) || y.contains(x));
-    }
+    final list = <Map<String, dynamic>>[];
 
-    for (final campaign in list) {
-      campaign['title'] = campaign['title']?.toString() ?? '';
-      campaign['source_url'] = campaign['source_url']?.toString() ?? '';
-      campaign['merchant'] = campaign['merchant']?.toString() ?? '';
-
-      // campaigns tablosunda banka adı yerine bank_id varsa bunu çözüyoruz.
-      final campaignBankId = '${campaign['bank_id'] ?? ''}'.trim();
-      final mappedBankName = bankNames[campaignBankId];
-      if ('${campaign['bank_name'] ?? ''}'.trim().isEmpty &&
-          mappedBankName != null) {
+    for (final source in rawList) {
+      final campaign = Map<String, dynamic>.from(source);
+      final bankId = '${campaign['bank_id'] ?? ''}'.trim();
+      final mappedBankName = bankNames[bankId];
+      if ('${campaign['bank_name'] ?? ''}'.trim().isEmpty && mappedBankName != null) {
         campaign['bank_name'] = mappedBankName;
       }
-      campaign['campaign_text'] =
-          campaign['campaign_text']?.toString() ?? '';
-      campaign['conditions'] = campaign['conditions']?.toString() ?? '';
-      campaign['terms'] = campaign['terms']?.toString() ?? '';
 
-      // Kart adı ayrı kolonda yoksa kampanya metninden bilinen kartı çıkar.
-      // Örn. "Yapı Kredi World" kampanyası sadece World kartlarıyla eşleşsin.
-      final campaignBlob = _norm([
-        campaign['title'],
-        campaign['campaign_text'],
-        campaign['conditions'],
-        campaign['terms'],
-        campaign['description'],
-      ].where((x) => x != null).join(' '));
+      final categoryId = '${campaign['category_id'] ?? ''}'.trim();
+      if ('${campaign['category'] ?? ''}'.trim().isEmpty && categoryNames[categoryId] != null) {
+        campaign['category'] = categoryNames[categoryId];
+      }
+
+      campaign['title'] = '${campaign['title'] ?? ''}';
+      campaign['source_url'] = '${campaign['source_url'] ?? campaign['detail_url'] ?? campaign['url'] ?? ''}';
+      campaign['merchant'] = '${campaign['merchant'] ?? ''}';
+      campaign['campaign_text'] = '${campaign['campaign_text'] ?? campaign['description'] ?? ''}';
+      campaign['conditions'] = '${campaign['conditions'] ?? ''}';
+      campaign['terms'] = '${campaign['terms'] ?? ''}';
+
+      if (!_isRealCampaign(campaign)) continue;
+
+      final campaignIdValue = '${campaign['id'] ?? ''}'.trim();
+      final matchedRules = rules.where((rule) {
+        final ruleCampaignId = '${rule['campaign_id'] ?? ''}'.trim();
+        return ruleCampaignId.isNotEmpty && ruleCampaignId == campaignIdValue;
+      }).map((e) => Map<String, dynamic>.from(e)).toList();
+
+      campaign['_rules'] = matchedRules;
+
+      final blob = _norm([
+        campaign['title'], campaign['campaign_text'], campaign['conditions'],
+        campaign['terms'], campaign['description'], campaign['merchant'],
+      ].join(' '));
 
       if ('${campaign['card_name'] ?? ''}'.trim().isEmpty) {
         const knownCards = <String, String>{
-          'world': 'World',
-          'world pay': 'World',
-          'worldpay': 'World',
-          'axess': 'Axess',
-          'bonus': 'Bonus',
-          'maximum': 'Maximum',
-          'paraf': 'Paraf',
-          'advantage': 'Advantage',
-          'cardfinans': 'CardFinans',
-          'bankkart': 'Bankkart',
-          'wings': 'Wings',
+          'world': 'World', 'world pay': 'World', 'worldpay': 'World',
+          'axess': 'Axess', 'bonus': 'Bonus', 'maximum': 'Maximum',
+          'paraf': 'Paraf', 'advantage': 'Advantage', 'cardfinans': 'CardFinans',
+          'bankkart': 'Bankkart', 'wings': 'Wings', 'free': 'Free',
         };
         for (final entry in knownCards.entries) {
-          if (campaignBlob.contains(entry.key)) {
+          if (blob.contains(entry.key)) {
             campaign['card_name'] = entry.value;
             break;
           }
         }
       }
 
-      // Ağ adı metinde açıkça geçiyorsa onu da uygula.
       if ('${campaign['network'] ?? ''}'.trim().isEmpty) {
-        if (campaignBlob.contains('visa')) {
+        if (blob.contains(RegExp(r'\bvisa\b'))) {
           campaign['network'] = 'Visa';
-        } else if (campaignBlob.contains('mastercard')) {
+        } else if (blob.contains(RegExp(r'\bmastercard\b'))) {
           campaign['network'] = 'Mastercard';
-        } else if (campaignBlob.contains('troy')) {
+        } else if (blob.contains(RegExp(r'\btroy\b'))) {
           campaign['network'] = 'Troy';
         }
       }
 
-      final matchedRules = <Map<String, dynamic>>[];
-
-      for (final rule in rules) {
-        bool matched = false;
-
-        // En güvenilir bağlantı: campaign_id.
-        final ruleCampaignId = '${rule['campaign_id'] ?? ''}'.trim();
-        if (ruleCampaignId.isNotEmpty &&
-            ruleCampaignId == '${campaign['id'] ?? ''}'.trim()) {
-          matched = true;
-        }
-
-        // Eski/veri aktarılmış kayıtlarda campaign_id NULL olabilir.
-        // Bu durumda URL, başlık veya merchant üzerinden bağlamayı deniyoruz.
-        if (!matched) {
-          final ruleUrl = rule['source_url'] ?? rule['detail_url'] ?? rule['url'];
-          final campaignUrl =
-              campaign['source_url'] ?? campaign['detail_url'] ?? campaign['url'];
-          if (sameText(ruleUrl, campaignUrl)) {
-            matched = true;
-          }
-        }
-
-        if (!matched) {
-          final ruleTitle =
-              rule['campaign_title'] ?? rule['title'] ?? rule['campaign_text'];
-          if (sameText(ruleTitle, campaign['title'])) {
-            matched = true;
-          }
-        }
-
-        if (!matched) {
-          final ruleMerchant = rule['merchant'];
-          if (sameText(ruleMerchant, campaign['merchant'])) {
-            matched = true;
-          }
-        }
-
-        if (matched) {
-          matchedRules.add(rule);
-        }
-      }
-
-      campaign['_rules'] = matchedRules;
+      list.add(campaign);
     }
 
-    cachedCampaigns = list;
-    return list;
+    // Defensive deduplication: same campaign may exist more than once in the source.
+    final seen = <String>{};
+    final unique = list.where((campaign) {
+      final key = '${campaign['id'] ?? ''}'.trim().isNotEmpty
+          ? 'id:${campaign['id']}'
+          : 'url:${_norm('${campaign['source_url'] ?? ''}')}|title:${_norm('${campaign['title'] ?? ''}')}';
+      return seen.add(key);
+    }).toList();
+
+    cachedCampaigns = unique;
+    return unique;
   }
+
   
 
   String _norm(String value) {
@@ -687,37 +795,45 @@ class _CampaignsPageState extends State<CampaignsPage> {
     if (r.isEmpty || r == '*' || r == 'all' || r == 'tum' || r == 'hepsi') return true;
     if (a.isEmpty) return false;
 
-    const aliases = <String, List<String>>{
-      'axess': ['axess', 'akbank axess'],
-      'bonus': ['bonus', 'garanti bonus', 'teb bonus'],
-      'world': ['world', 'yapi kredi world'],
-      'maximum': ['maximum', 'is bankasi maximum'],
-      'bankkart': ['bankkart', 'ziraat bankkart'],
-      'paraf': ['paraf', 'halkbank paraf'],
-      'cardfinans': ['cardfinans', 'qnb cardfinans'],
-      'wings': ['wings', 'akbank wings'],
-      'free': ['free', 'akbank free'],
-      'bankamatik': ['banka karti', 'bankamatik', 'debit'],
-      'banka karti': ['banka karti', 'bankamatik', 'debit'],
-      'kredi': ['kredi', 'kredi karti', 'credit'],
-      'kredi karti': ['kredi', 'kredi karti', 'credit'],
-      'bireysel': ['bireysel', 'individual'],
-      'ticari': ['ticari', 'business', 'commercial'],
-    };
+    final ruleParts = r
+        .split(RegExp(r'[,;/|]'))
+        .map((x) => x.trim())
+        .where((x) => x.isNotEmpty);
 
-    bool matchesOne(String item) {
-      final x = _norm(item);
-      final xs = <String>{x, ...(aliases[x] ?? const <String>[])};
-      final ys = <String>{a, ...(aliases[a] ?? const <String>[])};
-      return xs.any((left) => ys.any(
-        (right) => left == right || left.contains(right) || right.contains(left),
-      ));
+    bool equivalent(String x, String y) {
+      if (x == y) return true;
+      const aliases = <String, List<String>>{
+        'kredi': ['kredi', 'kredi karti', 'credit'],
+        'kredi karti': ['kredi', 'kredi karti', 'credit'],
+        'banka': ['banka', 'banka karti', 'bankamatik', 'debit'],
+        'banka karti': ['banka', 'banka karti', 'bankamatik', 'debit'],
+        'bankamatik': ['banka', 'banka karti', 'bankamatik', 'debit'],
+        'bireysel': ['bireysel', 'individual'],
+        'ticari': ['ticari', 'business', 'commercial'],
+        'troy': ['troy'],
+        'visa': ['visa'],
+        'mastercard': ['mastercard'],
+      };
+      final xSet = <String>{x, ...(aliases[x] ?? const <String>[])};
+      final ySet = <String>{y, ...(aliases[y] ?? const <String>[])};
+      if (xSet.intersection(ySet).isNotEmpty) return true;
+
+      // Card-family matching: World -> World Gold/Platinum, Bonus -> Bonus Gold...
+      const families = <String>[
+        'world', 'bonus', 'axess', 'wings', 'free', 'maximum', 'paraf',
+        'bankkart', 'cardfinans', 'advantage', 'play', 'adios', 'saglam kart',
+        'happy card', 'premier',
+      ];
+      for (final family in families) {
+        if ((x == family && y.startsWith('$family ')) ||
+            (y == family && x.startsWith('$family '))) {
+          return true;
+        }
+      }
+      return false;
     }
 
-    return r.split(RegExp(r'[,;/|]'))
-        .map((x) => x.trim())
-        .where((x) => x.isNotEmpty)
-        .any(matchesOne);
+    return ruleParts.any((part) => equivalent(part, a));
   }
 
   List<String> fieldMatches(
@@ -835,17 +951,22 @@ class _CampaignsPageState extends State<CampaignsPage> {
     setState(() {
       campaignProgress[id] = next;
     });
+    _persistProgress(id, next);
   }
 
   void toggleFavorite(Map<String, dynamic> campaign) {
     final id = campaignId(campaign);
     if (id.isEmpty) return;
 
+    final enabled = !favoriteIds.contains(id);
     setState(() {
-      if (!favoriteIds.add(id)) {
+      if (enabled) {
+        favoriteIds.add(id);
+      } else {
         favoriteIds.remove(id);
       }
     });
+    _persistFavorite(id, enabled);
   }
 
   void toggleCompare(Map<String, dynamic> campaign) {
@@ -1043,28 +1164,14 @@ class _CampaignsPageState extends State<CampaignsPage> {
     Map<String, dynamic> rule,
     UserCard userCard,
   ) {
-    final customerOk = _ruleMatches(
-      '${rule['customer_type'] ?? ''}',
-      userCard.customerType,
-    );
-    final cardTypeOk = _ruleMatches(
-      '${rule['card_type'] ?? ''}',
-      userCard.cardType,
-    );
-    final bankOk = _ruleMatches(
-      '${rule['bank_name'] ?? ''}',
-      userCard.bank,
-    );
-    final cardOk = _ruleMatches(
-      '${rule['card_name'] ?? ''}',
-      userCard.card,
-    );
+    final bankRule = '${rule['bank_name'] ?? rule['bank'] ?? ''}'.trim();
+    final cardRule = '${rule['card_name'] ?? rule['card'] ?? ''}'.trim();
+    final customerRule = '${rule['customer_type'] ?? ''}'.trim();
+    final cardTypeRule = '${rule['card_type'] ?? ''}'.trim();
 
     var networkRule = '${rule['network'] ?? ''}'.trim();
-
     if (networkRule.isEmpty) {
       final eligible = rule['eligible_networks'];
-
       if (eligible is List) {
         networkRule = eligible.join('/');
       } else if (eligible != null) {
@@ -1076,16 +1183,11 @@ class _CampaignsPageState extends State<CampaignsPage> {
       }
     }
 
-    final networkOk = _ruleMatches(
-      networkRule,
-      userCard.network,
-    );
-
-    return customerOk &&
-        cardTypeOk &&
-        bankOk &&
-        cardOk &&
-        networkOk;
+    return _ruleMatches(customerRule, userCard.customerType) &&
+        _ruleMatches(cardTypeRule, userCard.cardType) &&
+        _ruleMatches(bankRule, userCard.bank) &&
+        _ruleMatches(cardRule, userCard.card) &&
+        _ruleMatches(networkRule, userCard.network);
   }
 
   bool cardMatches(
@@ -1093,20 +1195,24 @@ class _CampaignsPageState extends State<CampaignsPage> {
     UserCard userCard,
   ) {
     final rules = campaign['_rules'];
-
-    // Kampanyaya bağlı birden fazla kural varsa, kartın en az
-    // bir kuralla eşleşmesi yeterlidir.
     if (rules is List && rules.isNotEmpty) {
       return rules.any((raw) {
         final rule = raw is Map<String, dynamic>
             ? raw
             : Map<String, dynamic>.from(raw as Map);
-
         return _matchesSingleRule(rule, userCard);
       });
     }
 
-    // Kural yoksa kampanyanın kendi alanlarını kullan.
+    // No rule means the campaign's own restrictions are authoritative.
+    // If a bank is known, it MUST match; this prevents a Yapı Kredi campaign
+    // from appearing for every user's card merely because card/network is blank.
+    final campaignBank = '${campaign['bank_name'] ?? ''}'.trim();
+    if (campaignBank.isNotEmpty &&
+        !_ruleMatches(campaignBank, userCard.bank)) {
+      return false;
+    }
+
     return _matchesSingleRule(campaign, userCard);
   }
 
