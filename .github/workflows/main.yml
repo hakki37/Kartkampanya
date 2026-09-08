@@ -29,6 +29,9 @@ jobs:
       - name: Apply v17 catalog fixes
         run: python3 scripts/fix-v17-ui.py
 
+      - name: Ensure CatalogLogo widget
+        run: python3 scripts/ensure-catalog-logo.py
+
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
