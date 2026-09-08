@@ -43,6 +43,9 @@ jobs:
       - name: Apply v19 reference design fixes
         run: python3 scripts/fix-v19-reference-design.py
 
+      - name: Apply v20 horizontal logos and strict card matching
+        run: python3 scripts/fix-v20-logo-filter.py
+
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
