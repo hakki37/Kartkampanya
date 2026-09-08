@@ -3,9 +3,6 @@ from pathlib import Path
 p = Path('lib/main.dart')
 s = p.read_text(encoding='utf-8')
 
-# v16 currently uses Google favicon squares for banks/cards. Replace that
-# renderer with clean catalog-style wordmarks, matching the supplied target:
-# AKBANK | axess | VISA. No external image host is needed.
 start = s.find('class CatalogLogo extends StatelessWidget{')
 end = s.find('\n\nclass CampaignDetailPage', start)
 if start >= 0 and end > start:
@@ -45,214 +42,27 @@ if start >= 0 and end > start:
   }
 }'''
     s = s[:start] + logo + s[end:]
-    print('CatalogLogo replaced with catalog-style wordmarks')
-else:
-    print('CatalogLogo class not found; keeping existing renderer')
 
 old = "Wrap(spacing:4,runSpacing:2,children:[if(b.isNotEmpty)CatalogLogo(label:b),if(card.isNotEmpty)CatalogLogo(label:card),if(n.isNotEmpty)CatalogLogo(label:n)])"
 new = "Wrap(spacing:2,runSpacing:2,children:[if(b.isNotEmpty)CatalogLogo(label:b),if(b.isNotEmpty&&card.isNotEmpty)const Padding(padding:EdgeInsets.symmetric(horizontal:5),child:Text('|',style:TextStyle(color:Color(0xFF8090A8),fontSize:20,fontWeight:FontWeight.w300))),if(card.isNotEmpty)CatalogLogo(label:card),if(card.isNotEmpty&&n.isNotEmpty)const Padding(padding:EdgeInsets.symmetric(horizontal:5),child:Text('|',style:TextStyle(color:Color(0xFF8090A8),fontSize:20,fontWeight:FontWeight.w300))),if(n.isNotEmpty)CatalogLogo(label:n)])"
-count = s.count(old)
-if count:
+if old in s:
     s = s.replace(old, new)
-    print(f'catalog bank | card | network separators applied ({count})')
 
 detail_old = "Center(child:Wrap(alignment:WrapAlignment.center,spacing:5,children:[if(b.isNotEmpty)CatalogLogo(label:b),if(card.isNotEmpty)CatalogLogo(label:card),if(n.isNotEmpty)CatalogLogo(label:n)]))"
 detail_new = "Center(child:Wrap(alignment:WrapAlignment.center,spacing:2,children:[if(b.isNotEmpty)CatalogLogo(label:b),if(b.isNotEmpty&&card.isNotEmpty)const Padding(padding:EdgeInsets.symmetric(horizontal:5),child:Text('|',style:TextStyle(color:Color(0xFF8090A8),fontSize:20,fontWeight:FontWeight.w300))),if(card.isNotEmpty)CatalogLogo(label:card),if(card.isNotEmpty&&n.isNotEmpty)const Padding(padding:EdgeInsets.symmetric(horizontal:5),child:Text('|',style:TextStyle(color:Color(0xFF8090A8),fontSize:20,fontWeight:FontWeight.w300))),if(n.isNotEmpty)CatalogLogo(label:n)]))"
 if detail_old in s:
     s = s.replace(detail_old, detail_new)
-    print('detail bank | card | network separators applied')
 
-# Separate campaign tabs: home keeps the catalog feed, while the new
-# "Kartıma Uygun" and "Tüm Kampanyalar" tabs have explicit behavior.
-old_shell = '''    final pages = <Widget>[
-      CampaignsPage(cards: cards),
-      MyCardsPage(
-        cards: cards,
-        onAdd: addCard,
-        onDelete: deleteCard,
-      ),
-      const CategoriesPage(),
-    ];'''
-new_shell = '''    final pages = <Widget>[
-      CampaignsPage(cards: cards, mode: 'home'),
-      CampaignsPage(cards: cards, mode: 'matched'),
-      CampaignsPage(cards: cards, mode: 'all'),
-      MyCardsPage(
-        cards: cards,
-        onAdd: addCard,
-        onDelete: deleteCard,
-      ),
-      const CategoriesPage(),
-    ];'''
-if old_shell in s:
-    s = s.replace(old_shell, new_shell, 1)
-else:
-    print('MainShell pages block not found')
-
-old_nav = '''        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Ana Sayfa',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.credit_card_outlined),
-            selectedIcon: Icon(Icons.credit_card),
-            label: 'Bendeki Kartlar',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.category_outlined),
-            selectedIcon: Icon(Icons.category),
-            label: 'Kategoriler',
-          ),
-        ],'''
-new_nav = '''        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Ana Sayfa',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.auto_awesome_outlined),
-            selectedIcon: Icon(Icons.auto_awesome),
-            label: 'Kartıma Uygun',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.apps_outlined),
-            selectedIcon: Icon(Icons.apps),
-            label: 'Tüm Kampanyalar',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.credit_card_outlined),
-            selectedIcon: Icon(Icons.credit_card),
-            label: 'Bendeki Kartlar',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.category_outlined),
-            selectedIcon: Icon(Icons.category),
-            label: 'Kategoriler',
-          ),
-        ],'''
-if old_nav in s:
-    s = s.replace(old_nav, new_nav, 1)
-else:
-    print('Navigation destinations block not found')
-
-old_ctor = '''class CampaignsPage extends StatefulWidget {
-  final List<UserCard> cards;
-
-  const CampaignsPage({
-    super.key,
-    required this.cards,
-  });'''
-new_ctor = '''class CampaignsPage extends StatefulWidget {
-  final List<UserCard> cards;
-  final String mode; // home | matched | all
-
-  const CampaignsPage({
-    super.key,
-    required this.cards,
-    this.mode = 'home',
-  });'''
-if old_ctor in s:
-    s = s.replace(old_ctor, new_ctor, 1)
-else:
-    print('CampaignsPage constructor block not found')
-
-old_init = '''  void initState() {
-    super.initState();
-    future = fetchCampaigns();
-    _loadUserState();
-  }'''
-new_init = '''  void initState() {
-    super.initState();
-    showAllCampaigns = widget.mode == 'all';
-    future = fetchCampaigns();
-    _loadUserState();
-  }'''
-if old_init in s:
-    s = s.replace(old_init, new_init, 1)
-else:
-    print('CampaignsPage initState block not found')
-
-old_match = '''      if (widget.cards.isNotEmpty &&
-          matchingCards.isEmpty &&
-          !showAllCampaigns) {
-        continue;
-      }'''
-new_match = '''      // Dedicated tabs have strict, predictable semantics:
-      // Kartıma Uygun = only campaigns matching at least one saved card.
-      // Tüm Kampanyalar = never hide a campaign because of saved cards.
-      if (widget.mode == 'matched' &&
-          (widget.cards.isEmpty || matchingCards.isEmpty)) {
-        continue;
-      }
-
-      if (widget.mode == 'home' &&
-          widget.cards.isNotEmpty &&
-          matchingCards.isEmpty &&
-          !showAllCampaigns) {
-        continue;
-      }'''
-if old_match in s:
-    s = s.replace(old_match, new_match, 1)
-else:
-    print('card matching block not found')
-
-old_title = '''        title: const Text(
-          'Kart Kampanya',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),'''
-new_title = '''        title: Text(
-          widget.mode == 'matched'
-              ? 'Kartıma Uygun'
-              : widget.mode == 'all'
-                  ? 'Tüm Kampanyalar'
-                  : 'Kart Kampanya',
-          style: const TextStyle(fontWeight: FontWeight.w800),
-        ),'''
-if old_title in s:
-    s = s.replace(old_title, new_title, 1)
-else:
-    print('Campaign app bar title block not found')
-
-# Fix the visible v16 "0 TL" fallback. Percentage campaigns show their
-# percentage, installment campaigns show installments, and free benefits
-# do not pretend to be a zero-lira cash reward.
-marker = "String _catalogBenefitText(Map<String, dynamic> campaign) {"
-if marker not in s:
-    helper = r'''String _catalogBenefitText(Map<String, dynamic> campaign) {
-  final title = decodeHtmlEntities('${campaign['title'] ?? ''}');
-  final text = _norm('${campaign['title'] ?? ''} ${campaign['campaign_text'] ?? ''} ${campaign['conditions'] ?? ''}');
-
-  if (text.contains('ucretsiz') && text.contains('park')) return 'Ücretsiz park';
-
-  final percent = RegExp(r'%\s*(\d+(?:[\.,]\d+)?)').firstMatch(text);
-  if (percent != null) return '%${percent.group(1)!.replaceAll(',', '.')} indirim';
-
-  final installment = RegExp(r'\b(\d{1,2})\s*taksit\b').firstMatch(text);
-  if (installment != null) return '${installment.group(1)} taksit';
-
-  final reward = double.tryParse('${campaign['reward_amount'] ?? 0}') ?? 0;
-  final max = double.tryParse('${campaign['max_reward'] ?? 0}') ?? 0;
-  final value = max > 0 ? max : reward;
-  if (value > 0) return '${value.toStringAsFixed(0)} TL';
-
-  if (title.toLowerCase().contains('ücretsiz')) return 'Ücretsiz';
-  return 'Detaylar için kampanyaya bak';
-}
-'''
-    insert_at = s.find('class SmartCampaignCard extends StatelessWidget {')
-    if insert_at >= 0:
-        s = s[:insert_at] + helper + '\n' + s[insert_at:]
-    else:
-        print('SmartCampaignCard marker not found for benefit helper')
-
-old_benefit = "Padding(padding: const EdgeInsets.only(top: 8), child: Text('💰 Tahmini avantaj: ${hasMoney ? '${(reward as num).toDouble().toStringAsFixed(0)} TL' : installment != null ? '$installment taksit' : '0 TL'}', style: TextStyle(fontWeight: FontWeight.w800, color: hasMoney || installment != null ? Colors.amber : null))),"
-new_benefit = "Padding(padding: const EdgeInsets.only(top: 8), child: Text('💰 Tahmini avantaj: ${_catalogBenefitText(campaign)}', style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.amber))),"
-if old_benefit in s:
-    s = s.replace(old_benefit, new_benefit)
-else:
-    print('v16 benefit widget not found; leaving existing benefit renderer')
+# The v16 generated tab row contains two deeply nested one-line widgets.
+# Add the missing Expanded closing paren only to those exact campaign labels.
+s = s.replace(
+    "Text('Kartıma Uygun', style: TextStyle(fontWeight: FontWeight.w900, color: !showAllCampaigns ? Colors.white : const Color(0xFFB7C1D5)))]))),",
+    "Text('Kartıma Uygun', style: TextStyle(fontWeight: FontWeight.w900, color: !showAllCampaigns ? Colors.white : const Color(0xFFB7C1D5)))])))),",
+)
+s = s.replace(
+    "Text('Tüm Kampanyalar', style: TextStyle(fontWeight: FontWeight.w900, color: showAllCampaigns ? Colors.white : const Color(0xFFB7C1D5)))]))),",
+    "Text('Tüm Kampanyalar', style: TextStyle(fontWeight: FontWeight.w900, color: showAllCampaigns ? Colors.white : const Color(0xFFB7C1D5)))])))),",
+)
+print('campaign tab widget parentheses fixed')
 
 p.write_text(s, encoding='utf-8')
