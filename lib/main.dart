@@ -171,12 +171,13 @@ String campaignSection(Map<String, dynamic> campaign) {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF5B4BDB),
-          brightness: Brightness.light,
+          brightness: Brightness.dark,
         ),
-        scaffoldBackgroundColor: const Color(0xFFF6F7FB),
+        scaffoldBackgroundColor: const Color(0xFF081120),
         appBarTheme: const AppBarTheme(
           elevation: 0,
-          backgroundColor: Colors.transparent,
+          backgroundColor: const Color(0xFF081120),
+          foregroundColor: Colors.white,
         ),
         cardTheme: const CardThemeData(
           elevation: 0,
@@ -409,12 +410,10 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      CampaignsPage(cards: cards),
-      MyCardsPage(
-        cards: cards,
-        onAdd: addCard,
-        onDelete: deleteCard,
-      ),
+      CampaignsPage(cards: cards, mode: 'home'),
+      CampaignsPage(cards: cards, mode: 'matched'),
+      CampaignsPage(cards: cards, mode: 'all'),
+      MyCardsPage(cards: cards, onAdd: addCard, onDelete: deleteCard),
       const CategoriesPage(),
     ];
 
@@ -426,21 +425,11 @@ class _MainShellState extends State<MainShell> {
           setState(() => index = v);
         },
         destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Ana Sayfa',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.credit_card_outlined),
-            selectedIcon: Icon(Icons.credit_card),
-            label: 'Bendeki Kartlar',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.category_outlined),
-            selectedIcon: Icon(Icons.category),
-            label: 'Kategoriler',
-          ),
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Ana Sayfa'),
+          NavigationDestination(icon: Icon(Icons.auto_awesome_outlined), selectedIcon: Icon(Icons.auto_awesome), label: 'Kartıma Uygun'),
+          NavigationDestination(icon: Icon(Icons.apps_outlined), selectedIcon: Icon(Icons.apps), label: 'Tüm Kampanyalar'),
+          NavigationDestination(icon: Icon(Icons.credit_card_outlined), selectedIcon: Icon(Icons.credit_card), label: 'Bendeki Kartlar'),
+          NavigationDestination(icon: Icon(Icons.category_outlined), selectedIcon: Icon(Icons.category), label: 'Kategoriler'),
         ],
       ),
     );
@@ -449,10 +438,12 @@ class _MainShellState extends State<MainShell> {
 
 class CampaignsPage extends StatefulWidget {
   final List<UserCard> cards;
+  final String mode; // home | matched | all
 
   const CampaignsPage({
     super.key,
     required this.cards,
+    this.mode = 'home',
   });
 
   @override
@@ -501,6 +492,7 @@ class _CampaignsPageState extends State<CampaignsPage> {
   @override
   void initState() {
     super.initState();
+    showAllCampaigns = widget.mode == 'all';
     future = fetchCampaigns();
     _loadUserState();
   }
@@ -1534,7 +1526,7 @@ class _CampaignsPageState extends State<CampaignsPage> {
                   onPressed: searchNow,
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: const Color(0xFF0B1B31),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 18,
                   vertical: 16,
@@ -1613,45 +1605,46 @@ class _CampaignsPageState extends State<CampaignsPage> {
 
             const SizedBox(height: 10),
 
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                ...(showAllQuickCategories ? quick : quick.take(6)).map<Widget>(
-                  (x) => FilterChip(
-                    visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    avatar: Text(x[0], style: const TextStyle(fontSize: 15)),
-                    label: Text(x[1], style: const TextStyle(fontSize: 13)),
-                    selected: category == x[1],
-                    onSelected: (_) {
-                      setState(() {
-                        category = category == x[1] ? '' : x[1];
-                      });
-                    },
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 8,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: 1.05,
+              ),
+              itemBuilder: (_, i) {
+                const data = [
+                  ['🚗', 'Otomotiv'], ['🛍️', 'E-ticaret'], ['📱', 'Elektronik'], ['🛒', 'Market'],
+                  ['⛽', 'Akaryakıt'], ['🧳', 'Seyahat'], ['👕', 'Giyim'], ['▦', 'Tümü'],
+                ];
+                final x = data[i];
+                final selected = x[1] == 'Tümü' ? category.isEmpty : category == x[1];
+                return InkWell(
+                  borderRadius: BorderRadius.circular(15),
+                  onTap: () => setState(() => category = x[1] == 'Tümü' ? '' : x[1]),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    decoration: BoxDecoration(
+                      gradient: selected ? const LinearGradient(colors: [Color(0xFF5B3DF5), Color(0xFF7653FF)]) : null,
+                      color: selected ? null : const Color(0xFF0B1B31),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: selected ? const Color(0xFF6D59FF) : const Color(0xFF28415F)),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(x[0], style: const TextStyle(fontSize: 23)),
+                        const SizedBox(height: 3),
+                        Text(x[1], maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800)),
+                      ],
+                    ),
                   ),
-                ),
-                ActionChip(
-                  visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-                  avatar: Icon(
-                    showAllQuickCategories
-                        ? Icons.expand_less_rounded
-                        : Icons.expand_more_rounded,
-                    size: 18,
-                  ),
-                  label: Text(
-                    showAllQuickCategories
-                        ? 'Daha az'
-                        : 'Tüm kategoriler (${quick.length})',
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      showAllQuickCategories = !showAllQuickCategories;
-                    });
-                  },
-                ),
-              ],
+                );
+              },
             ),
 
             const SizedBox(height: 14),
@@ -2287,7 +2280,7 @@ class SmartCampaignCard extends StatelessWidget {
       campaign['title']?.toString().trim() ?? '',
     ),
     style: const TextStyle(
-      fontSize: 17,
+      fontSize: 16,
       fontWeight: FontWeight.bold,
     ),
   ),
@@ -2763,12 +2756,16 @@ class _MyCardsPageState extends State<MyCardsPage> {
                       width: 46,
                       height: 46,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFECE9FF),
+                        color: const Color(0xFF162844),
                         borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF294263)),
                       ),
-                      child: const Icon(
-                        Icons.credit_card_rounded,
-                        color: Color(0xFF5B4BDB),
+                      alignment: Alignment.center,
+                      child: Text(
+                        c.bank.length > 7 ? c.bank.substring(0, 7) : c.bank,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900),
                       ),
                     ),
                     title: Text(
@@ -2791,6 +2788,25 @@ class _MyCardsPageState extends State<MyCardsPage> {
               }).toList(),
             ),
     );
+  }
+}
+
+class CatalogLogo extends StatelessWidget {
+  final String label;
+  final bool big;
+  const CatalogLogo({super.key, required this.label, this.big = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final n = _norm(label);
+    final size = big ? 19.0 : 13.0;
+    if (n == 'visa') return Text('VISA', style: TextStyle(fontSize: size + 2, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic));
+    if (n == 'mastercard') return const Icon(Icons.circle, size: 18);
+    if (n == 'troy') return Text('troy', style: TextStyle(fontSize: size + 1, fontWeight: FontWeight.w900));
+    if (n == 'akbank') return Text('AKBANK', style: TextStyle(fontSize: size, fontWeight: FontWeight.w900));
+    if (n == 'teb') return Text('TEB', style: TextStyle(fontSize: size + 2, fontWeight: FontWeight.w900));
+    return Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
+      style: TextStyle(fontSize: size, fontWeight: FontWeight.w900));
   }
 }
 
