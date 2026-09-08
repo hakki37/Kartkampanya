@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 
 p = Path('lib/main.dart')
 s = p.read_text(encoding='utf-8')
@@ -87,7 +86,6 @@ init_new = '''  void initState() {
 s = s.replace(init_old, init_new, 1)
 
 # 4) Compact catalog-style 4x2 category grid. It avoids chip wrapping/overflow.
-pattern = re.compile(r'''\n            Wrap\(\n              spacing: 6,\n              runSpacing: 6,\n              children: \[\n                \Q''' , re.S)
 start = s.find('''            Wrap(
               spacing: 6,
               runSpacing: 6,
