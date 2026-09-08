@@ -11,9 +11,8 @@ dependencies:
     sdk: flutter
   http: ^1.5.0
   shared_preferences: ^2.5.3
-  timezone: ^0.10.1
-  flutter_local_notifications: ^19.4.1
-  wallpaper_manager_flutter: ^0.0.2
+  flutter_cache_manager: ^3.4.1
+  wallpaper_manager_flutter: ^1.0.1
 
 dev_dependencies:
   flutter_test:
