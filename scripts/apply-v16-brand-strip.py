@@ -11,8 +11,6 @@ if end < 0:
     end = len(s)
 block = s[smart:end]
 
-# Read bank/card/network directly from the campaign. The strip intentionally
-# stays text/logo based so it works offline and keeps the catalog compact.
 if 'final displayNetwork = decodeHtmlEntities' not in block:
     marker = "final card = decodeHtmlEntities('${campaign['card_name'] ?? ''}').trim();"
     pos = block.find(marker)
@@ -28,28 +26,59 @@ if 'class _CatalogBrandStrip' not in s:
   final String network;
   const _CatalogBrandStrip({required this.bank, required this.card, required this.network});
 
+  Widget _logo(String domain) => domain.isEmpty
+      ? const SizedBox.shrink()
+      : _CatalogLogo(_logoUrl(domain), size: 44);
+
   @override
   Widget build(BuildContext context) {
-    final values = <String>[
-      if (bank.isNotEmpty) bank,
-      if (card.isNotEmpty) card,
-      if (network.isNotEmpty) network,
-    ];
-    if (values.isEmpty) return const SizedBox.shrink();
+    final bankDomain = _bankDomain(bank);
+    final cardDomain = _brandDomain(card);
+    final hasNetwork = network.isNotEmpty;
+    if (bankDomain.isEmpty && cardDomain.isEmpty && !hasNetwork) return const SizedBox.shrink();
+
+    final parts = <Widget>[];
+    if (bankDomain.isNotEmpty) parts.add(_logo(bankDomain));
+    if (cardDomain.isNotEmpty) {
+      if (parts.isNotEmpty) parts.add(const _BrandDivider());
+      parts.add(_logo(cardDomain));
+    }
+    if (hasNetwork) {
+      if (parts.isNotEmpty) parts.add(const _BrandDivider());
+      parts.add(_NetworkBrandLogo(network));
+    }
 
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 4),
-      child: Row(
-        children: [
-          for (int i = 0; i < values.length; i++) ...[
-            Expanded(child: Center(child: CatalogLogo(label: values[i]))),
-            if (i < values.length - 1)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Text('|', style: TextStyle(color: Color(0xFF8090A8), fontSize: 22, fontWeight: FontWeight.w300)),
-              ),
-          ],
-        ],
+      padding: const EdgeInsets.only(top: 8, bottom: 5),
+      child: Row(children: parts),
+    );
+  }
+}
+
+class _BrandDivider extends StatelessWidget {
+  const _BrandDivider();
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.symmetric(horizontal: 14),
+    child: SizedBox(height: 34, child: VerticalDivider(width: 1, thickness: 1, color: Color(0xFF7E8AA0))),
+  );
+}
+
+class _NetworkBrandLogo extends StatelessWidget {
+  final String network;
+  const _NetworkBrandLogo(this.network);
+  @override
+  Widget build(BuildContext context) {
+    final n = network.toLowerCase();
+    final slug = n.contains('master') ? 'mastercard' : n.contains('troy') ? 'troy' : 'visa';
+    return Padding(
+      padding: const EdgeInsets.only(left: 2),
+      child: Image.network(
+        'https://cdn.simpleicons.org/$slug',
+        height: 34,
+        width: 90,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Text(network, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
       ),
     );
   }
@@ -73,4 +102,4 @@ if '_CatalogBrandStrip(bank: bank, card: card, network: displayNetwork)' not in 
 
 s = s[:smart] + block + s[end:]
 p.write_text(s, encoding='utf-8')
-print('bank | card | network brand strip applied')
+print('bank | card | network logos applied')
