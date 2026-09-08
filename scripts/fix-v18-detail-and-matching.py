@@ -12,7 +12,7 @@ if smart < 0 or mycards < 0:
 # Replace the campaign bottom sheet with a real full-screen detail page.
 segment = s[smart:mycards]
 pattern = re.compile(
-    r"\s*onTap: \(\)\s*(?:=>\s*showModalBottomSheet\(|\{\s*showModalBottomSheet\().*?\n\s*\},?\n\s*child: Padding\(",
+    r"\s*onTap:\s*\(\)\s*\{\s*showModalBottomSheet\(.*?\n        child: Padding\(",
     re.S,
 )
 replacement = '''
