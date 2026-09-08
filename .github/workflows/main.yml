@@ -38,6 +38,9 @@ jobs:
       - name: Apply v18 detail and matching fixes
         run: python3 scripts/fix-v18-detail-and-matching.py
 
+      - name: Normalize TEB Bonus and CEPTETEB matching
+        run: python3 scripts/fix-v18-teb-alias.py
+
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
