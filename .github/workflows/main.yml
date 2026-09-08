@@ -23,11 +23,6 @@ jobs:
       - name: Create Android project
         run: flutter create --platforms=android .
 
-      - name: Apply v11 UI patch
-        run: |
-          git apply --check -p0 ui-theme-v11.patch
-          git apply -p0 ui-theme-v11.patch
-
       - name: Apply v12 UI polish
         run: python3 scripts/apply-v12-ui.py
 
