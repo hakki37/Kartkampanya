@@ -55,8 +55,10 @@ jobs:
       - name: Remove duplicate merchant domain helpers
         run: python3 scripts/fix-duplicate-merchant-domain.py
 
-      - name: Apply v16 catalog polish
-        run: python3 scripts/apply-v16-catalog-polish.py
+      - name: Apply v16 exact catalog UI
+        run: |
+          gzip -dc v16-ui.gz > scripts/apply-v16-ui.py
+          python3 scripts/apply-v16-ui.py
 
       - name: Add Internet permission
         run: |
