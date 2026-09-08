@@ -34,8 +34,8 @@ jobs:
       - name: Ensure CatalogLogo widget
         run: python3 scripts/ensure-catalog-logo.py
 
-      - name: Apply v18 detail and matching fixes
-        run: python3 scripts/fix-v18-detail-and-matching.py
+      - name: Apply robust v18 detail and matching fixes
+        run: python3 scripts/fix-v18-robust.py
 
       - name: Normalize TEB Bonus and CEPTETEB matching
         run: python3 scripts/fix-v18-teb-alias.py
