@@ -1,5 +1,6 @@
 name: Repair catalog UI
 
+# Keep the catalog repair and APK build on the same current main revision.
 on:
   push:
     branches: [main]
