@@ -27,7 +27,7 @@ new_class = r'''class _CatalogLogo extends StatelessWidget {
 String _logoUrl(String domain) =>
     'https://www.google.com/s2/favicons?domain=$domain&sz=128';
 
-String _merchantDomain(String merchant) {
+String _catalogMerchantDomain(String merchant) {
   final m = merchant.toLowerCase();
   const map = <String, String>{
     'ispark': 'ispark.istanbul', 'i̇spark': 'ispark.istanbul',
@@ -114,6 +114,7 @@ class SmartCampaignCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cards = (campaign['_cards'] as List?)?.whereType<UserCard>().toList() ?? <UserCard>[];
     final merchant = decodeHtmlEntities('${campaign['merchant'] ?? ''}').trim();
     final title = decodeHtmlEntities('${campaign['title'] ?? ''}').trim();
     final category = decodeHtmlEntities('${campaign['category'] ?? ''}').trim();
@@ -127,7 +128,7 @@ class SmartCampaignCard extends StatelessWidget {
     final installment = RegExp(r'(\d+)\s*taksit').firstMatch(text)?.group(1);
     final reward = campaign['_calculatedReward'] ?? campaign['_reward'] ?? campaign['reward_amount'] ?? campaign['max_reward'];
     final hasMoney = reward is num && reward > 0;
-    final merchantDomain = _merchantDomain(merchant);
+    final merchantDomain = _catalogMerchantDomain(merchant);
     final bankDomain = _bankDomain(bank);
     final cardDomain = _brandDomain(card);
 
@@ -153,7 +154,7 @@ class SmartCampaignCard extends StatelessWidget {
               Text(terms.isNotEmpty ? terms : 'Kampanya şartları bulunamadı.', style: const TextStyle(height: 1.45)),
               if (detailUrl.isNotEmpty) ...[
                 const SizedBox(height: 14),
-                SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => onOpenUrl(detailUrl), icon: const Icon(Icons.open_in_new_rounded), label: const Text('Kampanyaya Git')),
+                SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => onOpenUrl(detailUrl), icon: const Icon(Icons.open_in_new_rounded), label: const Text('Kampanyaya Git'))),
               ],
             ]),
           )),
@@ -189,8 +190,6 @@ class SmartCampaignCard extends StatelessWidget {
 }
 
 '''
-# Preserve the existing cards calculation by adding it as a local getter-like block.
-new_class = new_class.replace("    final merchant =", "    final cards = (campaign['_cards'] as List?)?.whereType<UserCard>().toList() ?? <UserCard>[];\n    final merchant =")
 s = s[:start] + new_class + s[end:]
 p.write_text(s, encoding='utf-8')
 print('v15 catalog UI applied')
