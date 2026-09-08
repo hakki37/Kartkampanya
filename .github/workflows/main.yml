@@ -55,6 +55,9 @@ jobs:
       - name: Remove duplicate merchant domain helpers
         run: python3 scripts/fix-duplicate-merchant-domain.py
 
+      - name: Apply v16 catalog polish
+        run: python3 scripts/apply-v16-catalog-polish.py
+
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
