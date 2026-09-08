@@ -23,6 +23,9 @@ jobs:
       - name: Create Android project
         run: flutter create --platforms=android .
 
+      - name: Apply catalog image logos and card brands
+        run: python3 scripts/apply-v15-catalog-ui.py
+
       - name: Apply final catalog polish
         run: python3 scripts/final-catalog-polish.py
 
@@ -31,6 +34,9 @@ jobs:
 
       - name: Ensure CatalogLogo widget
         run: python3 scripts/ensure-catalog-logo.py
+
+      - name: Apply v18 detail and matching fixes
+        run: python3 scripts/fix-v18-detail-and-matching.py
 
       - name: Add Internet permission
         run: |
