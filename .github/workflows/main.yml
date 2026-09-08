@@ -8,7 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,6 +39,9 @@ jobs:
 
       - name: Normalize TEB Bonus and CEPTETEB matching
         run: python3 scripts/fix-v18-teb-alias.py
+
+      - name: Apply v19 reference design fixes
+        run: python3 scripts/fix-v19-reference-design.py
 
       - name: Add Internet permission
         run: |
