@@ -23,6 +23,12 @@ jobs:
       - name: Create Android project
         run: flutter create --platforms=android .
 
+      - name: Apply final catalog polish
+        run: python3 scripts/final-catalog-polish.py
+
+      - name: Apply v17 catalog fixes
+        run: python3 scripts/fix-v17-ui.py
+
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
