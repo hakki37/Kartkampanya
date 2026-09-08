@@ -1,15 +1,17 @@
 from pathlib import Path
+import re
 
 p = Path('lib/main.dart')
 s = p.read_text(encoding='utf-8')
 
-# v20: replace the square/text-heavy CatalogLogo with a wide, high-resolution
-# logo renderer. Brandfetch serves the original horizontal brand mark instead
-# of a tiny favicon, so TEB/VakıfBank/etc. do not look pixelated when enlarged.
+# v20: replace CatalogLogo regardless of which page class follows it.
 start = s.find('class CatalogLogo extends StatelessWidget')
-end = s.find('\n\nclass CampaignDetailPage', start)
-if start < 0 or end < 0:
-    raise SystemExit('CatalogLogo boundaries not found')
+if start < 0:
+    raise SystemExit('CatalogLogo not found')
+match = re.search(r'\nclass\s+\w+.*', s[start + 10:])
+if not match:
+    raise SystemExit('CatalogLogo end boundary not found')
+end = start + 10 + match.start()
 
 logo = r'''class CatalogLogo extends StatelessWidget {
   final String label;
@@ -28,7 +30,7 @@ logo = r'''class CatalogLogo extends StatelessWidget {
       'qnb': 'qnb.com.tr', 'cardfinans': 'qnb.com.tr',
       'teb': 'teb.com.tr', 'cepteteb': 'teb.com.tr',
       'vakıfbank': 'vakifbank.com.tr', 'vakifbank': 'vakifbank.com.tr',
-      'denizbank': 'denizbank.com', 'denizbank': 'denizbank.com',
+      'denizbank': 'denizbank.com',
       'ing': 'ing.com.tr', 'hsbc': 'hsbc.com.tr', 'odeabank': 'odeabank.com.tr',
       'fibabanka': 'fibabanka.com.tr', 'şekerbank': 'sekerbank.com.tr', 'sekerbank': 'sekerbank.com.tr',
       'anadolubank': 'anadolubank.com.tr', 'albaraka': 'albaraka.com.tr',
@@ -49,39 +51,26 @@ logo = r'''class CatalogLogo extends StatelessWidget {
     final domain = _domain(label);
     final w = big ? 150.0 : 112.0;
     final h = big ? 50.0 : 36.0;
+    final fallback = Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.center,
+      style: TextStyle(fontSize: big ? 18 : 13, fontWeight: FontWeight.w900, color: Colors.white));
     if (domain.isEmpty) {
-      return SizedBox(
-        width: w, height: h,
-        child: Center(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: big ? 18 : 13, fontWeight: FontWeight.w900, color: Colors.white))),
-      );
+      return SizedBox(width: w, height: h, child: Center(child: fallback));
     }
     final url = 'https://cdn.brandfetch.io/$domain/w/600/h/180/logo';
     return SizedBox(
       width: w,
       height: h,
-      child: Image.network(
-        url,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.high,
-        errorBuilder: (_, __, ___) => Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: big ? 18 : 13, fontWeight: FontWeight.w900, color: Colors.white)),
-      ),
+      child: Image.network(url, fit: BoxFit.contain, filterQuality: FilterQuality.high,
+        errorBuilder: (_, __, ___) => Center(child: fallback)),
     );
   }
 }'''
 s = s[:start] + logo + s[end:]
 
-# v20: Home + "Kartıma Uygun" must contain only campaigns matching at least
-# one saved card. "Tüm Kampanyalar" remains the unrestricted catalog.
+# v20: Home + Kartıma Uygun show only campaigns matching a saved card.
 needle = "    cachedCampaigns = unique;\n    return unique;"
-replacement = r'''    bool valueOf(Map<String, dynamic> row, List<String> keys, String Function(String) norm) {
-      return keys.any((key) => '${row[key] ?? ''}'.trim().isNotEmpty);
-    }
-
-    String field(Map<String, dynamic> row, List<String> keys) {
+replacement = r'''    String field(Map<String, dynamic> row, List<String> keys) {
       for (final key in keys) {
         final value = '${row[key] ?? ''}'.trim();
         if (value.isNotEmpty) return value;
@@ -97,17 +86,15 @@ replacement = r'''    bool valueOf(Map<String, dynamic> row, List<String> keys, 
         return _ruleMatches(r, a);
       }
 
-      final rules = (campaign['_rules'] as List?)
-          ?.whereType<Map>()
-          .map((x) => Map<String, dynamic>.from(x))
-          .toList() ?? <Map<String, dynamic>>[];
-
       bool rowMatches(Map<String, dynamic> row) {
         final bank = field(row, ['bank_name', 'bank']);
         final cardName = field(row, ['card_name', 'card', 'card_program', 'card_brand']);
         final network = field(row, ['network', 'card_network']);
         final cardType = field(row, ['card_type']);
         final customerType = field(row, ['customer_type', 'customer_segment']);
+        final hasTarget = bank.isNotEmpty || cardName.isNotEmpty || network.isNotEmpty ||
+            cardType.isNotEmpty || customerType.isNotEmpty;
+        if (!hasTarget) return false;
         return same(bank, card.bank) &&
             same(cardName, card.card) &&
             same(network, card.network) &&
@@ -115,11 +102,11 @@ replacement = r'''    bool valueOf(Map<String, dynamic> row, List<String> keys, 
             same(customerType, card.customerType);
       }
 
-      if (rules.isNotEmpty && rules.any(rowMatches)) return true;
-      if (rules.isNotEmpty) return false;
-
-      // Some imported campaigns carry the targeting fields directly instead
-      // of in campaign_rules. Those fields are still matched strictly.
+      final rules = (campaign['_rules'] as List?)
+          ?.whereType<Map>()
+          .map((x) => Map<String, dynamic>.from(x))
+          .toList() ?? <Map<String, dynamic>>[];
+      if (rules.isNotEmpty) return rules.any(rowMatches);
       return rowMatches(campaign);
     }
 
