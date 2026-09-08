@@ -69,6 +69,9 @@ jobs:
       - name: Final v16 Dart safety pass
         run: python3 scripts/fix-v16-final-dart.py
 
+      - name: Apply final reference catalog polish
+        run: python3 scripts/final-catalog-polish.py
+
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
