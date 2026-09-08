@@ -46,6 +46,9 @@ jobs:
       - name: Apply v20 horizontal logos and strict card matching
         run: python3 scripts/fix-v20-logo-filter.py
 
+      - name: Apply v21 horizontal campaign logos
+        run: python3 scripts/fix-v21-horizontal-campaign-logos.py
+
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
