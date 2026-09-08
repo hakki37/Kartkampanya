@@ -60,6 +60,9 @@ jobs:
           gzip -dc v16-ui.gz > scripts/apply-v16-ui.py
           python3 scripts/apply-v16-ui.py
 
+      - name: Fix v16 generated Dart syntax
+        run: python3 scripts/fix-v16-syntax.py
+
       - name: Apply v16 bank card network strip
         run: python3 scripts/apply-v16-brand-strip.py
 
