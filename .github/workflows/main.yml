@@ -60,6 +60,9 @@ jobs:
           gzip -dc v16-ui.gz > scripts/apply-v16-ui.py
           python3 scripts/apply-v16-ui.py
 
+      - name: Fix v16 generated Dart syntax
+        run: python3 scripts/fix-v16-syntax.py
+
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
