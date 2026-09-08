@@ -66,6 +66,9 @@ jobs:
       - name: Apply v16 bank card network strip
         run: python3 scripts/apply-v16-brand-strip.py
 
+      - name: Final v16 Dart safety pass
+        run: python3 scripts/fix-v16-final-dart.py
+
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
