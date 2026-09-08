@@ -3,13 +3,23 @@ from pathlib import Path
 p = Path('lib/main.dart')
 s = p.read_text(encoding='utf-8')
 
-# v20: replace the square/text-heavy CatalogLogo with a wide, high-resolution
-# logo renderer. Use the next top-level class as the boundary because earlier
-# repair scripts may rename/reorder CampaignDetailPage.
+# Replace CatalogLogo by locating the class and its closing brace structurally.
 start = s.find('class CatalogLogo extends StatelessWidget')
-end = s.find('\n\nclass ', start + 1)
-if start < 0 or end < 0:
-    raise SystemExit('CatalogLogo boundaries not found')
+if start < 0:
+    raise SystemExit('CatalogLogo class not found')
+brace = s.find('{', start)
+depth = 0
+end = -1
+for i in range(brace, len(s)):
+    if s[i] == '{':
+        depth += 1
+    elif s[i] == '}':
+        depth -= 1
+        if depth == 0:
+            end = i + 1
+            break
+if end < 0:
+    raise SystemExit('CatalogLogo closing brace not found')
 
 logo = r'''class CatalogLogo extends StatelessWidget {
   final String label;
@@ -28,9 +38,9 @@ logo = r'''class CatalogLogo extends StatelessWidget {
       'qnb': 'qnb.com.tr', 'cardfinans': 'qnb.com.tr',
       'teb': 'teb.com.tr', 'cepteteb': 'teb.com.tr',
       'vakıfbank': 'vakifbank.com.tr', 'vakifbank': 'vakifbank.com.tr',
-      'denizbank': 'denizbank.com',
-      'ing': 'ing.com.tr', 'hsbc': 'hsbc.com.tr', 'odeabank': 'odeabank.com.tr',
-      'fibabanka': 'fibabanka.com.tr', 'şekerbank': 'sekerbank.com.tr', 'sekerbank': 'sekerbank.com.tr',
+      'denizbank': 'denizbank.com', 'ing': 'ing.com.tr', 'hsbc': 'hsbc.com.tr',
+      'odeabank': 'odeabank.com.tr', 'fibabanka': 'fibabanka.com.tr',
+      'şekerbank': 'sekerbank.com.tr', 'sekerbank': 'sekerbank.com.tr',
       'anadolubank': 'anadolubank.com.tr', 'albaraka': 'albaraka.com.tr',
       'kuveyt türk': 'kuveytturk.com.tr', 'kuveytturk': 'kuveytturk.com.tr',
       'emlak katılım': 'emlakkatilim.com.tr', 'emlakkatilim': 'emlakkatilim.com.tr',
@@ -50,32 +60,15 @@ logo = r'''class CatalogLogo extends StatelessWidget {
     final w = big ? 150.0 : 112.0;
     final h = big ? 50.0 : 36.0;
     if (domain.isEmpty) {
-      return SizedBox(
-        width: w, height: h,
-        child: Center(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: big ? 18 : 13, fontWeight: FontWeight.w900, color: Colors.white))),
-      );
+      return SizedBox(width: w, height: h, child: Center(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: TextStyle(fontSize: big ? 18 : 13, fontWeight: FontWeight.w900, color: Colors.white))));
     }
     final url = 'https://cdn.brandfetch.io/$domain/w/600/h/180/logo';
-    return SizedBox(
-      width: w,
-      height: h,
-      child: Image.network(
-        url,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.high,
-        errorBuilder: (_, __, ___) => Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: big ? 18 : 13, fontWeight: FontWeight.w900, color: Colors.white)),
-      ),
-    );
+    return SizedBox(width: w, height: h, child: Image.network(url, fit: BoxFit.contain, filterQuality: FilterQuality.high,
+      errorBuilder: (_, __, ___) => Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: TextStyle(fontSize: big ? 18 : 13, fontWeight: FontWeight.w900, color: Colors.white))));
   }
 }'''
 s = s[:start] + logo + s[end:]
 
-# v20: Home + "Kartıma Uygun" must contain only campaigns matching at least
-# one saved card. "Tüm Kampanyalar" remains the unrestricted catalog.
 needle = "    cachedCampaigns = unique;\n    return unique;"
 replacement = r'''    String field(Map<String, dynamic> row, List<String> keys) {
       for (final key in keys) {
@@ -92,27 +85,18 @@ replacement = r'''    String field(Map<String, dynamic> row, List<String> keys) 
         if (r.isEmpty) return true;
         return _ruleMatches(r, a);
       }
-
-      final rules = (campaign['_rules'] as List?)
-          ?.whereType<Map>()
-          .map((x) => Map<String, dynamic>.from(x))
-          .toList() ?? <Map<String, dynamic>>[];
-
+      final rules = (campaign['_rules'] as List?)?.whereType<Map>().map((x) => Map<String, dynamic>.from(x)).toList() ?? <Map<String, dynamic>>[];
       bool rowMatches(Map<String, dynamic> row) {
         final bank = field(row, ['bank_name', 'bank']);
         final cardName = field(row, ['card_name', 'card', 'card_program', 'card_brand']);
         final network = field(row, ['network', 'card_network']);
         final cardType = field(row, ['card_type']);
         final customerType = field(row, ['customer_type', 'customer_segment']);
-        return same(bank, card.bank) &&
-            same(cardName, card.card) &&
-            same(network, card.network) &&
-            same(cardType, card.cardType) &&
-            same(customerType, card.customerType);
+        final hasTarget = bank.isNotEmpty || cardName.isNotEmpty || network.isNotEmpty || cardType.isNotEmpty || customerType.isNotEmpty;
+        if (!hasTarget) return false;
+        return same(bank, card.bank) && same(cardName, card.card) && same(network, card.network) && same(cardType, card.cardType) && same(customerType, card.customerType);
       }
-
-      if (rules.isNotEmpty && rules.any(rowMatches)) return true;
-      if (rules.isNotEmpty) return false;
+      if (rules.isNotEmpty) return rules.any(rowMatches);
       return rowMatches(campaign);
     }
 
@@ -124,18 +108,15 @@ replacement = r'''    String field(Map<String, dynamic> row, List<String> keys) 
             campaign['_cards'] = matchingCards;
             return matchingCards.isNotEmpty;
           }).toList();
-
     if (widget.mode == 'all') {
       for (final campaign in visible) {
         campaign['_cards'] = widget.cards.where((card) => matchesCard(campaign, card)).toList();
       }
     }
-
     cachedCampaigns = visible;
     return visible;'''
 if needle not in s:
     raise SystemExit('campaign result boundary not found')
 s = s.replace(needle, replacement, 1)
-
 p.write_text(s, encoding='utf-8')
-print('v20 horizontal logos and strict card matching applied')
+print('v20 robust logo boundary and strict card matching applied')
