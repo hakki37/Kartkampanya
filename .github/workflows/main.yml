@@ -45,6 +45,8 @@ jobs:
         run: python3 scripts/fix-v24-minimal-card.py
       - name: Apply v25 Dart interpolation syntax fix
         run: python3 scripts/fix-v25-dart-string-syntax.py
+      - name: Apply v26 parser-safe campaign card
+        run: python3 scripts/fix-v26-safe-card.py
       - name: Validate Dart syntax
         run: dart format --output=none lib/main.dart
       - name: Add Internet permission
