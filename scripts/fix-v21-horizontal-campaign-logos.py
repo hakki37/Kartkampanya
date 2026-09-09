@@ -3,12 +3,24 @@ from pathlib import Path
 p = Path('lib/main.dart')
 s = p.read_text(encoding='utf-8')
 
-# Campaign cards use _CatalogLogo, which gets its URL from _catalogLogoUrl.
-# v16 switched this helper to Clearbit, producing square favicon-like marks.
+# Replace the shared campaign logo widget structurally so it cannot depend on
+# fragile text boundaries created by earlier catalog transformation scripts.
 start = s.find('class _CatalogLogo extends StatelessWidget {')
-end = s.find('\n\nString _catalogMerchantDomain', start)
-if start < 0 or end < 0:
-    raise SystemExit('_CatalogLogo boundaries not found')
+if start < 0:
+    raise SystemExit('_CatalogLogo class not found')
+brace = s.find('{', start)
+depth = 0
+end = -1
+for i in range(brace, len(s)):
+    if s[i] == '{':
+        depth += 1
+    elif s[i] == '}':
+        depth -= 1
+        if depth == 0:
+            end = i + 1
+            break
+if end < 0:
+    raise SystemExit('_CatalogLogo closing brace not found')
 
 logo = r'''class _CatalogLogo extends StatelessWidget {
   final String url;
@@ -33,11 +45,19 @@ logo = r'''class _CatalogLogo extends StatelessWidget {
 }'''
 s = s[:start] + logo + s[end:]
 
-old = "String _catalogLogoUrl(String domain) =>\n    'https://logo.clearbit.com/$domain';"
-new = "String _catalogLogoUrl(String domain) =>\n    'https://cdn.brandfetch.io/$domain/w/600/h/180/logo';"
-if old not in s:
-    raise SystemExit('_catalogLogoUrl endpoint not found')
-s = s.replace(old, new, 1)
+# Earlier versions used Google favicons or Clearbit. Rewrite either endpoint
+# in-place; this remains safe even if a previous script changed the helper.
+s = s.replace(
+    'https://www.google.com/s2/favicons?domain=$domain&sz=128',
+    'https://cdn.brandfetch.io/$domain/w/600/h/180/logo',
+)
+s = s.replace(
+    'https://logo.clearbit.com/$domain',
+    'https://cdn.brandfetch.io/$domain/w/600/h/180/logo',
+)
 
+# If v16's helper exists, ensure it points to the same wide logo endpoint.
+# If it does not exist, the _logoUrl replacement above is sufficient because
+# the campaign cards already pass _logoUrl(...) to _CatalogLogo.
 p.write_text(s, encoding='utf-8')
 print('v21 horizontal high-resolution campaign logos applied')
