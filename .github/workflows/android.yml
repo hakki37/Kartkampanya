@@ -31,7 +31,7 @@ jobs:
       - name: Lock reference bottom navigation
         run: python3 scripts/lock-bottom-nav-v42.py
       - name: Lock HTML reference login screen
-        run: python3 scripts/lock-login-html-v43.py
+        run: python3 scripts/lock-reference-login-v2.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
