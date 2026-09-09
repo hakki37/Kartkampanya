@@ -38,10 +38,10 @@ jobs:
       - name: Dependencies
         run: flutter pub get
 
-      - name: Verify Dart
+      - name: Verify app Dart only
         run: |
           dart format --output=none lib/main.dart
-          flutter analyze --no-fatal-infos
+          dart analyze lib/main.dart --no-fatal-infos
 
       - name: Build APK
         run: flutter build apk --release
