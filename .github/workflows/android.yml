@@ -15,13 +15,10 @@ jobs:
           cache: true
       - name: Prepare Flutter project
         run: flutter create --platforms=android .
-      - name: Apply authoritative reference UI
-        run: |
-          python3 scripts/reference-ui-final.py
-          python3 scripts/fix-reference-mycards.py
-          python3 scripts/reference-mycards-light.py
-      - name: Format Dart
-        run: dart format lib/main.dart
+      - name: Dependencies
+        run: flutter pub get
+      - name: Format check
+        run: dart format --output=none --set-exit-if-changed lib/main.dart
       - name: Ensure internet permission
         run: |
           python3 - <<'PY'
@@ -33,8 +30,6 @@ jobs:
               s = s.replace('    <application', permission + '    <application', 1)
               p.write_text(s)
           PY
-      - name: Dependencies
-        run: flutter pub get
       - name: Build APK
         run: flutter build apk --release
       - name: Upload APK
