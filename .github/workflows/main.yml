@@ -49,6 +49,9 @@ jobs:
       - name: Apply v21 horizontal campaign logos
         run: python3 scripts/fix-v21-horizontal-campaign-logos.py
 
+      - name: Apply v22 reference-style UI and resilient logos
+        run: python3 scripts/fix-v22-reference-ui.py
+
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
