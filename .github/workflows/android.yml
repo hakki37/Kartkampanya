@@ -24,6 +24,8 @@ jobs:
         run: python3 scripts/fix-v31-clean-syntax.py
       - name: Lock reference visual theme
         run: python3 scripts/apply-reference-v40.py
+      - name: Remove generated top-level braces
+        run: python3 scripts/fix-top-level-braces.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
