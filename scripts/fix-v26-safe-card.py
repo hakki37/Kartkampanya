@@ -23,23 +23,7 @@ new=r'''class SmartCampaignCard extends StatelessWidget {
   final int requiredSteps;
   final int completedSteps;
   final ValueChanged<int> onProgressChange;
-
-  const SmartCampaignCard({
-    super.key,
-    required this.campaign,
-    required this.isFavorite,
-    required this.isCompared,
-    required this.showAllCampaigns,
-    required this.expiringSoon,
-    required this.daysRemaining,
-    required this.onFavorite,
-    required this.onCompare,
-    required this.onOpenUrl,
-    required this.requiredSteps,
-    required this.completedSteps,
-    required this.onProgressChange,
-  });
-
+  const SmartCampaignCard({super.key, required this.campaign, required this.isFavorite, required this.isCompared, required this.showAllCampaigns, required this.expiringSoon, required this.daysRemaining, required this.onFavorite, required this.onCompare, required this.onOpenUrl, required this.requiredSteps, required this.completedSteps, required this.onProgressChange});
   @override
   Widget build(BuildContext context) {
     final title = campaign['title']?.toString() ?? 'Kampanya';
@@ -52,15 +36,10 @@ new=r'''class SmartCampaignCard extends StatelessWidget {
     if (lower.contains('migros')) logo = 'https://cdn.brandfetch.io/migros.com.tr/w/600/h/180/logo';
     if (lower.contains('trendyol')) logo = 'https://cdn.brandfetch.io/trendyol.com/w/600/h/180/logo';
     if (lower.contains('hepsiburada')) logo = 'https://cdn.brandfetch.io/hepsiburada.com/w/600/h/180/logo';
-
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF121A2A),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFF34445E), width: 1.2),
-      ),
+      decoration: BoxDecoration(color: const Color(0xFF121A2A), borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFF34445E), width: 1.2)),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CampaignDetailPage(campaign: campaign))),
@@ -69,22 +48,17 @@ new=r'''class SmartCampaignCard extends StatelessWidget {
           children: <Widget>[
             logo.isNotEmpty ? _CatalogLogo(logo, size: 52) : const SizedBox(width: 8),
             const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(title, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, height: 1.15, fontWeight: FontWeight.w800, color: Colors.white)),
-                  const SizedBox(height: 5),
-                  Text(merchant, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: Color(0xFFB8C2D8), fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 10),
-                  Wrap(spacing: 7, runSpacing: 7, children: <Widget>[
-                    if (category.isNotEmpty) Container(padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6), decoration: BoxDecoration(color: const Color(0xFF5D43E7).withOpacity(.25), borderRadius: BorderRadius.circular(18)), child: Text(category, style: const TextStyle(color: Color(0xFFD5CCFF), fontWeight: FontWeight.w700))),
-                    if (lower.contains('ispark')) const _CatalogLogo('https://cdn.brandfetch.io/ispark.istanbul/w/600/h/180/logo', size: 32),
-                    if (lower.contains('migros')) const _CatalogLogo('https://cdn.brandfetch.io/migros.com.tr/w/600/h/180/logo', size: 32),
-                  ]),
-                ],
-              ),
-            ),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
+              Text(title, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, height: 1.15, fontWeight: FontWeight.w800, color: Colors.white)),
+              const SizedBox(height: 5),
+              Text(merchant, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: Color(0xFFB8C2D8), fontWeight: FontWeight.w600)),
+              const SizedBox(height: 10),
+              Wrap(spacing: 7, runSpacing: 7, children: <Widget>[
+                if (category.isNotEmpty) Container(padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6), decoration: BoxDecoration(color: const Color(0xFF5D43E7).withOpacity(.25), borderRadius: BorderRadius.circular(18)), child: Text(category, style: const TextStyle(color: Color(0xFFD5CCFF), fontWeight: FontWeight.w700))),
+                if (lower.contains('ispark')) const _CatalogLogo('https://cdn.brandfetch.io/ispark.istanbul/w/600/h/180/logo', size: 32),
+                if (lower.contains('migros')) const _CatalogLogo('https://cdn.brandfetch.io/migros.com.tr/w/600/h/180/logo', size: 32),
+              ]),
+            ])),
             IconButton(onPressed: onFavorite, icon: Icon(isFavorite ? Icons.star_rounded : Icons.star_border_rounded, color: Colors.white70)),
             IconButton(onPressed: detail.isEmpty ? null : () => onOpenUrl(detail), icon: const Icon(Icons.arrow_forward_rounded, color: Colors.white70)),
           ],
@@ -97,3 +71,4 @@ new=r'''class SmartCampaignCard extends StatelessWidget {
 s=s[:start]+new+s[end:]
 p.write_text(s,encoding='utf-8')
 print('v26 applied')
+# fresh-trigger marker
