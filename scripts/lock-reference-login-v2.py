@@ -42,6 +42,7 @@ class _LoginPageState extends State<LoginPage> {
   final password = TextEditingController();
   bool register = false;
   bool busy = false;
+  bool googleBusy = false;
   bool remember = true;
   bool obscure = true;
   String? error;
@@ -79,6 +80,29 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    if (googleBusy) return;
+    setState(() {
+      googleBusy = true;
+      error = null;
+    });
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'io.supabase.flutter://login-callback/',
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => error = 'Google ile giriş başlatılamadı: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => googleBusy = false);
+      }
+    }
+  }
+
   @override
   void dispose() {
     email.dispose();
@@ -102,19 +126,12 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 14),
                   const Text(
                     'Kart Kampanya',
-                    style: TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF1E1B3A),
-                    ),
+                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Color(0xFF1E1B3A)),
                   ),
                   const SizedBox(height: 3),
                   const Text(
                     'Tek Uygulamada, Tüm Fırsatlar',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: Color(0xFF7C7A94),
-                    ),
+                    style: TextStyle(fontSize: 12.5, color: Color(0xFF7C7A94)),
                   ),
                   const SizedBox(height: 22),
                   _tabs(),
@@ -128,26 +145,14 @@ class _LoginPageState extends State<LoginPage> {
                     obscure: obscure,
                     suffix: IconButton(
                       onPressed: () => setState(() => obscure = !obscure),
-                      icon: Icon(
-                        obscure
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                        size: 17,
-                        color: const Color(0xFF7C7A94),
-                      ),
+                      icon: Icon(obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 17, color: const Color(0xFF7C7A94)),
                     ),
                   ),
                   if (error != null) ...[
                     const SizedBox(height: 8),
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: Text(
-                        error!,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFFEF4444),
-                        ),
-                      ),
+                      child: Text(error!, style: const TextStyle(fontSize: 11, color: Color(0xFFEF4444))),
                     ),
                   ],
                   const SizedBox(height: 10),
@@ -157,19 +162,14 @@ class _LoginPageState extends State<LoginPage> {
                     width: double.infinity,
                     height: 50,
                     child: FilledButton(
-                      onPressed: busy ? null : submit,
+                      onPressed: busy || googleBusy ? null : submit,
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFF6C5CE7),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
                       child: Text(
                         busy ? 'Bekleyin...' : (register ? 'Kayıt Ol' : 'Giriş Yap'),
-                        style: const TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800),
                       ),
                     ),
                   ),
@@ -180,45 +180,26 @@ class _LoginPageState extends State<LoginPage> {
                     width: double.infinity,
                     height: 50,
                     child: OutlinedButton(
-                      onPressed: () {},
+                      onPressed: busy ? null : signInWithGoogle,
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Color(0xFFE6E3F5)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          const Text('G', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF4285F4))),
+                          const SizedBox(width: 8),
                           Text(
-                            'G',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF4285F4),
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Google ile Giriş Yap',
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1E1B3A),
-                            ),
+                            googleBusy ? 'Google açılıyor...' : 'Google ile Giriş Yap',
+                            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF1E1B3A)),
                           ),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const Text(
-                    'Kampanyaları kaçırma, avantajını yaşa! 🤍',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: Color(0xFF7C7A94),
-                    ),
-                  ),
+                  const Text('Kampanyaları kaçırma, avantajını yaşa! 🤍', style: TextStyle(fontSize: 11.5, color: Color(0xFF7C7A94))),
                 ],
               ),
             ),
@@ -233,18 +214,10 @@ class _LoginPageState extends State<LoginPage> {
       width: 64,
       height: 64,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF8C7CFF), Color(0xFF5A47D6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: const LinearGradient(colors: [Color(0xFF8C7CFF), Color(0xFF5A47D6)], begin: Alignment.topLeft, end: Alignment.bottomRight),
         borderRadius: BorderRadius.circular(18),
       ),
-      child: const Icon(
-        Icons.credit_card_rounded,
-        color: Colors.white,
-        size: 31,
-      ),
+      child: const Icon(Icons.credit_card_rounded, color: Colors.white, size: 31),
     );
   }
 
@@ -252,16 +225,11 @@ class _LoginPageState extends State<LoginPage> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEAE8F7),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          _tab('Giriş Yap', !register, () => setState(() => register = false)),
-          _tab('Kayıt Ol', register, () => setState(() => register = true)),
-        ],
-      ),
+      decoration: BoxDecoration(color: const Color(0xFFEAE8F7), borderRadius: BorderRadius.circular(14)),
+      child: Row(children: [
+        _tab('Giriş Yap', !register, () => setState(() => register = false)),
+        _tab('Kayıt Ol', register, () => setState(() => register = true)),
+      ]),
     );
   }
 
@@ -272,63 +240,30 @@ class _LoginPageState extends State<LoginPage> {
         borderRadius: BorderRadius.circular(11),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: active ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(11),
-          ),
+          decoration: BoxDecoration(color: active ? Colors.white : Colors.transparent, borderRadius: BorderRadius.circular(11)),
           alignment: Alignment.center,
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w700,
-              color: active
-                  ? const Color(0xFF6C5CE7)
-                  : const Color(0xFF7C7A94),
-            ),
-          ),
+          child: Text(text, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: active ? const Color(0xFF6C5CE7) : const Color(0xFF7C7A94))),
         ),
       ),
     );
   }
 
-  Widget _field(
-    TextEditingController controller,
-    IconData icon,
-    String hint, {
-    bool obscure = false,
-    Widget? suffix,
-  }) {
+  Widget _field(TextEditingController controller, IconData icon, String hint, {bool obscure = false, Widget? suffix}) {
     return Container(
       height: 49,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE6E3F5)),
-        borderRadius: BorderRadius.circular(14),
-      ),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFE6E3F5)), borderRadius: BorderRadius.circular(14)),
       child: TextField(
         controller: controller,
         obscureText: obscure,
-        keyboardType: hint.startsWith('E-posta')
-            ? TextInputType.emailAddress
-            : TextInputType.text,
-        style: const TextStyle(
-          fontSize: 13.5,
-          color: Color(0xFF1E1B3A),
-        ),
+        keyboardType: hint.startsWith('E-posta') ? TextInputType.emailAddress : TextInputType.text,
+        style: const TextStyle(fontSize: 13.5, color: Color(0xFF1E1B3A)),
         decoration: InputDecoration(
           prefixIcon: Icon(icon, size: 17, color: const Color(0xFF7C7A94)),
           suffixIcon: suffix,
           hintText: hint,
-          hintStyle: const TextStyle(
-            fontSize: 13.5,
-            color: Color(0xFFAAA7B8),
-          ),
+          hintStyle: const TextStyle(fontSize: 13.5, color: Color(0xFFAAA7B8)),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            vertical: 14,
-            horizontal: 14,
-          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
         ),
       ),
     );
@@ -337,55 +272,25 @@ class _LoginPageState extends State<LoginPage> {
   Widget _options() {
     return Row(
       children: [
-        SizedBox(
-          width: 22,
-          height: 22,
-          child: Checkbox(
-            value: remember,
-            onChanged: (v) => setState(() => remember = v ?? true),
-            activeColor: const Color(0xFF6C5CE7),
-            visualDensity: VisualDensity.compact,
-          ),
-        ),
+        SizedBox(width: 22, height: 22, child: Checkbox(value: remember, onChanged: (v) => setState(() => remember = v ?? true), activeColor: const Color(0xFF6C5CE7), visualDensity: VisualDensity.compact)),
         const SizedBox(width: 5),
-        const Text(
-          'Beni hatırla',
-          style: TextStyle(fontSize: 12, color: Color(0xFF7C7A94)),
-        ),
+        const Text('Beni hatırla', style: TextStyle(fontSize: 12, color: Color(0xFF7C7A94))),
         const Spacer(),
         TextButton(
           onPressed: () {},
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.zero,
-            minimumSize: Size.zero,
-          ),
-          child: const Text(
-            'Şifremi Unuttum?',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF6C5CE7),
-            ),
-          ),
+          style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
+          child: const Text('Şifremi Unuttum?', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6C5CE7))),
         ),
       ],
     );
   }
 
   Widget _divider() {
-    return Row(
-      children: [
-        const Expanded(child: Divider(color: Color(0xFFE6E3F5))),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10),
-          child: Text(
-            'veya',
-            style: TextStyle(fontSize: 12, color: Color(0xFF7C7A94)),
-          ),
-        ),
-        const Expanded(child: Divider(color: Color(0xFFE6E3F5))),
-      ],
-    );
+    return Row(children: [
+      const Expanded(child: Divider(color: Color(0xFFE6E3F5))),
+      const Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Text('veya', style: TextStyle(fontSize: 12, color: Color(0xFF7C7A94)))),
+      const Expanded(child: Divider(color: Color(0xFFE6E3F5))),
+    ]);
   }
 }
 
@@ -420,4 +325,4 @@ class _LoginWavePainter extends CustomPainter {
 
 s = replace_class(s, 'LoginPage', login)
 p.write_text(s, encoding='utf-8')
-print('parser-safe reference login locked')
+print('functional Google OAuth login locked')
