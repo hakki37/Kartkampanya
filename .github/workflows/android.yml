@@ -32,6 +32,8 @@ jobs:
         run: python3 scripts/lock-bottom-nav-v42.py
       - name: Lock HTML reference login screen
         run: python3 scripts/lock-reference-login-v2.py
+      - name: Remove duplicate login state
+        run: python3 scripts/fix-login-state-duplicate-v44.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
