@@ -1,10 +1,8 @@
 name: Android APK - CLEAN REFERENCE
-
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,7 +16,9 @@ jobs:
       - name: Prepare Flutter project
         run: flutter create --platforms=android .
       - name: Apply final reference UI
-        run: python3 scripts/reference-ui-final.py
+        run: |
+          python3 scripts/reference-ui-final.py
+          python3 scripts/repair-reference-final.py
       - name: Ensure internet permission
         run: |
           python3 - <<'PY'
