@@ -19,6 +19,7 @@ jobs:
         run: |
           python3 scripts/reference-ui-final.py
           python3 scripts/repair-reference-final.py
+          python3 scripts/reference-polish-v2.py
       - name: Sanitize generated Dart
         run: |
           python3 - <<'PY'
@@ -87,22 +88,9 @@ jobs:
                   else: out.append(ch)
               i+=1
           if depth != 0: raise SystemExit(f'unbalanced Dart braces remain: depth={depth}')
-          p.write_text(''.join(out), encoding='utf-8')
-          print('Dart sanitization complete')
-          PY
-      - name: Remove unresolved campaign detail route
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          p = Path('lib/main.dart')
-          s = p.read_text(encoding='utf-8')
-          pattern = r'onTap:\s*\(\)\s*=>\s*Navigator\.of\(context\)\.push\(MaterialPageRoute\(builder:\(_\)\s*=>\s*CampaignDetailPage\(campaign:campaign\)\)\)'
-          s, count = re.subn(pattern, 'onTap: () {}', s)
-          if 'CampaignDetailPage(campaign:campaign)' in s:
-              s = s.replace('CampaignDetailPage(campaign:campaign)', 'const SizedBox.shrink()')
+          s=''.join(out)
           p.write_text(s, encoding='utf-8')
-          print(f'campaign detail references removed: {count}')
+          print('Dart sanitization complete')
           PY
       - name: Ensure internet permission
         run: |
