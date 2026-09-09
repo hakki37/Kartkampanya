@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 
 p = Path("lib/main.dart")
 s = p.read_text(encoding="utf-8")
@@ -43,8 +42,10 @@ String _catalogBenefitText(Map<String, dynamic> campaign) {
   return '0 TL';
 }
 
+// Keep catalog logos visible in the APK. Clearbit can return empty responses;
+// Google's favicon endpoint is a more reliable HTTPS source for these domains.
 String _catalogLogoUrl(String domain) =>
-    'https://logo.clearbit.com/$domain';
+    'https://www.google.com/s2/favicons?domain=$domain&sz=128';
 '''
 if "String _catalogBenefitText(" not in s:
     s = s.replace(marker, helper + "\n" + marker, 1)
@@ -55,8 +56,7 @@ if old not in s:
     raise SystemExit("benefit widget not found")
 s = s.replace(old, new, 1)
 
-s = s.replace("String _logoUrl(String domain) =>\n    'https://www.google.com/s2/favicons?domain=$domain&sz=128';",
-              "String _logoUrl(String domain) => _catalogLogoUrl(domain);")
+s = s.replace("String _logoUrl(String domain) =>\n    'https://logo.clearbit.com/$domain';", "String _logoUrl(String domain) => _catalogLogoUrl(domain);")
 
 p.write_text(s, encoding="utf-8")
 print("v16 catalog polish applied")
