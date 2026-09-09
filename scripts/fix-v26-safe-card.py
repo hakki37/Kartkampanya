@@ -71,4 +71,3 @@ new=r'''class SmartCampaignCard extends StatelessWidget {
 s=s[:start]+new+s[end:]
 p.write_text(s,encoding='utf-8')
 print('v26 applied')
-# fresh-trigger marker
