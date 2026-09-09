@@ -18,7 +18,9 @@ jobs:
       - name: Prepare Flutter project
         run: flutter create --platforms=android .
       - name: Apply clean reference UI
-        run: python3 scripts/retheme-v30-clean.py
+        run: |
+          python3 scripts/retheme-v30-clean.py
+          python3 scripts/retheme-v31-cleanfix.py
       - name: Ensure internet permission
         run: |
           python3 - <<'PY'
@@ -41,5 +43,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: kart-kampanya-v30-apk
+          name: kart-kampanya-v31-apk
           path: build/app/outputs/flutter-apk/app-release.apk
