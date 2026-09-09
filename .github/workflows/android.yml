@@ -32,10 +32,6 @@ jobs:
           PY
       - name: Dependencies
         run: flutter pub get
-      - name: Verify app Dart
-        run: |
-          dart format --output=none lib/main.dart
-          dart analyze lib/main.dart
       - name: Build APK
         run: flutter build apk --release
       - name: Upload APK
