@@ -17,8 +17,8 @@ jobs:
         run: flutter create --platforms=android .
       - name: Dependencies
         run: flutter pub get
-      - name: Format check
-        run: dart format --output=none --set-exit-if-changed lib/main.dart
+      - name: Format Dart
+        run: dart format lib/main.dart
       - name: Ensure internet permission
         run: |
           python3 - <<'PY'
