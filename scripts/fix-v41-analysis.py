@@ -75,8 +75,8 @@ for name in ('_LoginPageState', '_MainShellState', '_HomeCat'):
     s = remove_duplicate_class(s, name)
 s = remove_class(s, '_PlanSummaryCard')
 
-# Remove the unused merchant local if the campaign card still contains it.
-s = s.replace("    final merchant = decodeHtmlEntities('${campaign['merchant'] ?? ''}').trim();\n", '')
+# Keep the campaign merchant local: the card renderer uses it for merchant
+# branding/domain resolution. Removing it leaves undefined identifiers.
 
 main.write_text(s, encoding='utf-8')
 
