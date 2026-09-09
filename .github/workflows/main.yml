@@ -47,6 +47,8 @@ jobs:
         run: python3 scripts/fix-v25-dart-string-syntax.py
       - name: Apply v26 parser-safe campaign card
         run: python3 scripts/fix-v26-safe-card.py
+      - name: Apply v27 logo parser fix
+        run: python3 scripts/fix-v27-logo-parenthesis.py
       - name: Show generated card source
         run: nl -ba lib/main.dart | sed -n '1655,1690p'
       - name: Validate Dart syntax
