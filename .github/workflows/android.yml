@@ -21,6 +21,7 @@ jobs:
         run: |
           python3 scripts/retheme-v30-clean.py
           python3 scripts/retheme-v31-cleanfix.py
+          python3 scripts/fix-v31-clean-syntax.py
       - name: Ensure internet permission
         run: |
           python3 - <<'PY'
