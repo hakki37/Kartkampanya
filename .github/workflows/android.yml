@@ -10,19 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.4'
           channel: stable
           cache: true
-
       - name: Prepare Flutter project
         run: flutter create --platforms=android .
-
       - name: Apply reference UI
         run: python3 scripts/retheme-v29.py
-
       - name: Ensure internet permission
         run: |
           python3 - <<'PY'
@@ -34,18 +30,14 @@ jobs:
               s = s.replace('    <application', permission + '    <application', 1)
               p.write_text(s)
           PY
-
       - name: Dependencies
         run: flutter pub get
-
-      - name: Verify app Dart only
+      - name: Verify app Dart
         run: |
           dart format --output=none lib/main.dart
-          dart analyze lib/main.dart --no-fatal-infos
-
+          dart analyze lib/main.dart
       - name: Build APK
         run: flutter build apk --release
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
