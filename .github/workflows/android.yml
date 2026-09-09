@@ -16,6 +16,8 @@ jobs:
           cache: true
       - name: Prepare Flutter project
         run: flutter create --platforms=android .
+      - name: Configure Google OAuth Android callback
+        run: python3 scripts/configure-google-oauth-android.py
       - name: Apply reference UI
         run: python3 scripts/reference-ui-final.py
       - name: Repair reference UI Dart
