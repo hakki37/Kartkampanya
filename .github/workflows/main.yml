@@ -41,6 +41,8 @@ jobs:
         run: python3 scripts/fix-v22-reference-ui.py
       - name: Apply v23 campaign card syntax fix
         run: python3 scripts/fix-v23-smart-card-syntax.py
+      - name: Apply v24 compile-safe campaign card
+        run: python3 scripts/fix-v24-minimal-card.py
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
