@@ -11,9 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore known-good source
-        run: git show 42734922bfba4ddcd53583202e2d9855b8215059:lib/main.dart > lib/main.dart
-
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.4'
@@ -23,7 +20,7 @@ jobs:
       - name: Prepare Flutter project
         run: flutter create --platforms=android .
 
-      - name: Apply ONLY reference UI
+      - name: Apply reference UI
         run: python3 scripts/retheme-v29.py
 
       - name: Ensure internet permission
