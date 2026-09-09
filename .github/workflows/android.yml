@@ -1,4 +1,4 @@
-name: Android APK
+name: Android APK - CLEAN REFERENCE
 
 on:
   push:
@@ -10,17 +10,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Restore known-good source
+        run: git show 42734922bfba4ddcd53583202e2d9855b8215059:lib/main.dart > lib/main.dart
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.4'
           channel: stable
           cache: true
+
       - name: Prepare Flutter project
         run: flutter create --platforms=android .
-      - name: Apply clean reference UI
-        run: |
-          python3 scripts/reference-ui-final.py
-          python3 scripts/repair-v32-reference-ui.py
+
+      - name: Apply ONLY reference UI
+        run: python3 scripts/retheme-v29.py
+
       - name: Ensure internet permission
         run: |
           python3 - <<'PY'
@@ -32,16 +37,20 @@ jobs:
               s = s.replace('    <application', permission + '    <application', 1)
               p.write_text(s)
           PY
+
       - name: Dependencies
         run: flutter pub get
-      - name: Format and analyze
+
+      - name: Verify Dart
         run: |
           dart format --output=none lib/main.dart
           flutter analyze --no-fatal-infos
+
       - name: Build APK
         run: flutter build apk --release
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: kart-kampanya-reference-v32-apk
+          name: kart-kampanya-clean-reference-apk
           path: build/app/outputs/flutter-apk/app-release.apk
