@@ -50,6 +50,15 @@ def block_end(src, start):
     raise SystemExit('closing brace not found')
 
 
+def remove_class(src, name):
+    marker = 'class ' + name
+    start = src.find(marker)
+    if start < 0:
+        return src
+    end = block_end(src, start)
+    return src[:start] + src[end:]
+
+
 def remove_duplicate_class(src, name):
     marker = 'class ' + name
     first = src.find(marker)
@@ -61,13 +70,17 @@ def remove_duplicate_class(src, name):
             return src
         src = src[:second] + src[block_end(src, second):]
 
+# Remove generated duplicate declarations and the unused legacy summary card.
 for name in ('_LoginPageState', '_MainShellState', '_HomeCat'):
     s = remove_duplicate_class(s, name)
+s = remove_class(s, '_PlanSummaryCard')
+
+# Remove the unused merchant local if the campaign card still contains it.
+s = s.replace("    final merchant = decodeHtmlEntities('${campaign['merchant'] ?? ''}').trim();\n", '')
 
 main.write_text(s, encoding='utf-8')
 
-# The Flutter template test still references the old MyApp class. It is not
-# part of the application and should not prevent static analysis of the app.
+# The Flutter template test references the old MyApp class and is not part of the app.
 test = Path('test/widget_test.dart')
 if test.exists():
     test.unlink()
