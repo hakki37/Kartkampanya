@@ -11,58 +11,44 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           flutter-version: '3.32.8'
           cache: true
-
       - name: Create Android project
         run: flutter create --platforms=android .
-
       - name: Apply catalog image logos and card brands
         run: python3 scripts/apply-v15-catalog-ui.py
-
       - name: Apply final catalog polish
         run: python3 scripts/final-catalog-polish.py
-
       - name: Apply v17 catalog fixes
         run: python3 scripts/fix-v17-ui.py
-
       - name: Ensure CatalogLogo widget
         run: python3 scripts/ensure-catalog-logo.py
-
       - name: Apply robust v18 detail and matching fixes
         run: python3 scripts/fix-v18-robust.py
-
       - name: Normalize TEB Bonus and CEPTETEB matching
         run: python3 scripts/fix-v18-teb-alias.py
-
       - name: Apply v19 reference design fixes
         run: python3 scripts/fix-v19-reference-design.py
-
       - name: Apply v20 horizontal logos and strict card matching
         run: python3 scripts/fix-v20-logo-filter.py
-
       - name: Apply v21 horizontal campaign logos
         run: python3 scripts/fix-v21-horizontal-campaign-logos.py
-
       - name: Apply v22 reference-style UI and resilient logos
         run: python3 scripts/fix-v22-reference-ui.py
-
+      - name: Apply v23 campaign card syntax fix
+        run: python3 scripts/fix-v23-smart-card-syntax.py
       - name: Add Internet permission
         run: |
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' android/app/src/main/AndroidManifest.xml
-
       - name: Set Android NDK 27
         run: |
           sed -i 's/ndkVersion = flutter.ndkVersion/ndkVersion = "27.0.12077973"/' android/app/build.gradle.kts
-
       - name: Get dependencies
         run: flutter pub get
-
       - name: Check Supabase key
         env:
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
@@ -72,13 +58,11 @@ jobs:
             exit 1
           fi
           echo "Supabase publishable key mevcut."
-
       - name: Build APK
         env:
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
           flutter build apk --release --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
