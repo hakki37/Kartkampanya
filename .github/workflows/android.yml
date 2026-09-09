@@ -17,10 +17,8 @@ jobs:
           cache: true
       - name: Prepare Flutter project
         run: flutter create --platforms=android .
-      - name: Apply reference UI
-        run: |
-          python3 scripts/retheme-v28.py
-          python3 scripts/retheme-v29.py
+      - name: Apply clean reference UI
+        run: python3 scripts/retheme-v30-clean.py
       - name: Ensure internet permission
         run: |
           python3 - <<'PY'
@@ -34,10 +32,14 @@ jobs:
           PY
       - name: Dependencies
         run: flutter pub get
+      - name: Format and analyze
+        run: |
+          dart format --output=none lib/main.dart
+          flutter analyze --no-fatal-infos
       - name: Build APK
         run: flutter build apk --release
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: kart-kampanya-v29-apk
+          name: kart-kampanya-v30-apk
           path: build/app/outputs/flutter-apk/app-release.apk
