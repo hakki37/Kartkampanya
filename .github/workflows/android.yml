@@ -86,6 +86,8 @@ jobs:
 
       - name: Restore tabless card selectors
         run: python3 scripts/repair-release-reference-ui.py
+      - name: Stabilize reference bottom navigation and compile helper
+        run: python3 scripts/repair-reference-bottom-and-compile.py
 
       - name: Dependencies
         run: flutter pub get
