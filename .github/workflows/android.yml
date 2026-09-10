@@ -65,6 +65,10 @@ jobs:
         run: python3 scripts/apply-v15-catalog-ui.py
       - name: Polish campaign benefit text and logos
         run: python3 scripts/apply-v16-catalog-polish.py
+      - name: Open campaigns in detail view
+        run: python3 scripts/fix-v18-robust.py
+      - name: Use separate card selection screen
+        run: python3 scripts/fix-v19-mycards-selection.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
