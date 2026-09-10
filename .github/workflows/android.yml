@@ -18,6 +18,29 @@ jobs:
         run: flutter create --platforms=android .
       - name: Configure Google OAuth Android callback
         run: python3 scripts/configure-google-oauth-android.py
+      - name: Validate Google OAuth Android manifest
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('android/app/src/main/AndroidManifest.xml')
+          s = p.read_text(encoding='utf-8')
+          activities = re.findall(
+              r'<activity\b[^>]*android:name=["\'][^"\']*MainActivity["\'][^>]*>.*?</activity>',
+              s,
+              flags=re.IGNORECASE | re.DOTALL,
+          )
+          callbacks = re.findall(
+              r'<data android:scheme="io\.supabase\.flutter" android:host="login-callback"\s*/>',
+              s,
+              flags=re.IGNORECASE,
+          )
+          if len(activities) != 1:
+              raise SystemExit(f'Expected exactly 1 MainActivity, found {len(activities)}')
+          if len(callbacks) != 1:
+              raise SystemExit(f'Expected exactly 1 Supabase callback data tag, found {len(callbacks)}')
+          print('OAuth manifest valid: exactly one MainActivity and one Supabase callback')
+          PY
       - name: Apply reference UI
         run: python3 scripts/reference-ui-final.py
       - name: Repair reference UI Dart
