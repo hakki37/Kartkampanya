@@ -50,6 +50,8 @@ jobs:
         run: python3 scripts/fix-v20-campaign-interactions.py
       - name: Guarantee campaign benefit helper
         run: python3 scripts/fix-v21-catalog-helper.py
+      - name: Apply reference campaign card v28
+        run: python3 scripts/apply-v28-catalog-reference.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
