@@ -20,6 +20,8 @@ jobs:
         run: python3 scripts/configure-google-oauth-android.py
       - name: Apply clean light reference UI
         run: python3 scripts/retheme-v30-clean.py
+      - name: Restore functional Google OAuth login
+        run: python3 scripts/lock-reference-login-v2.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
