@@ -33,23 +33,6 @@ jobs:
         run: python3 scripts/repair-campaign-card-syntax.py
       - name: Restore reference login and Google OAuth
         run: python3 scripts/lock-reference-login-v2.py
-      - name: Repair login/app class boundary
-        run: python3 scripts/repair-login-app-boundary.py
-      - name: Repair generated login syntax
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          p = Path('lib/main.dart')
-          s = p.read_text(encoding='utf-8')
-          for label in ('Giriş Yap', 'Kayıt Ol'):
-              pattern = rf"(child: Text\('{re.escape(label)}'.*?Color\(0xFF7C7A94\))\)\),"
-              s, count = re.subn(pattern, r'\1),', s, count=1, flags=re.S)
-              if count != 1:
-                  raise SystemExit(f'Expected one generated {label} syntax fix, found {count}')
-          p.write_text(s, encoding='utf-8')
-          print('Generated login parentheses repaired')
-          PY
       - name: Repair duplicate login state
         run: python3 scripts/repair-duplicate-login-state.py
       - name: Apply exact reference campaign card UI
