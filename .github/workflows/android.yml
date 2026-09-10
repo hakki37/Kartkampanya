@@ -15,7 +15,6 @@ jobs:
           flutter-version: '3.35.4'
           channel: stable
           cache: true
-
       - name: Prepare Flutter project
         run: flutter create --platforms=android .
       - name: Configure Google OAuth Android callback
@@ -40,17 +39,16 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p = Path('lib/main.dart')
           s = p.read_text(encoding='utf-8')
-          s = s.replace(
-              "child: Text('Giriş Yap', style: TextStyle(fontWeight: FontWeight.w700, color: !register ? const Color(0xFF6C5CE7) : const Color(0xFF7C7A94))),",
-              "child: Text('Giriş Yap', style: TextStyle(fontWeight: FontWeight.w700, color: !register ? const Color(0xFF6C5CE7) : const Color(0xFF7C7A94))),",
-          )
-          s = s.replace(
-              "child: Text('Kayıt Ol', style: TextStyle(fontWeight: FontWeight.w700, color: register ? const Color(0xFF6C5CE7) : const Color(0xFF7C7A94))),",
-              "child: Text('Kayıt Ol', style: TextStyle(fontWeight: FontWeight.w700, color: register ? const Color(0xFF6C5CE7) : const Color(0xFF7C7A94))),",
-          )
+          for label in ('Giriş Yap', 'Kayıt Ol'):
+              pattern = rf"(child: Text\('{re.escape(label)}'.*?Color\(0xFF7C7A94\))\)\),"
+              s, count = re.subn(pattern, r'\1),', s, count=1, flags=re.S)
+              if count != 1:
+                  raise SystemExit(f'Expected one generated {label} syntax fix, found {count}')
           p.write_text(s, encoding='utf-8')
+          print('Generated login parentheses repaired')
           PY
       - name: Repair duplicate login state
         run: python3 scripts/repair-duplicate-login-state.py
@@ -66,32 +64,28 @@ jobs:
               marker = 'class CategoriesPage extends StatelessWidget {'
               profile = '''class ProfilePage extends StatelessWidget {
             const ProfilePage({super.key});
-
             @override
             Widget build(BuildContext context) {
               final user = Supabase.instance.client.auth.currentUser;
               return Scaffold(
                 backgroundColor: const Color(0xFFF8F7FC),
                 appBar: AppBar(title: const Text('Profil', style: TextStyle(fontWeight: FontWeight.w900))),
-                body: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: const Color(0xFFE3DDF0))),
-                      child: Row(children: [
-                        const CircleAvatar(radius: 28, backgroundColor: Color(0xFFEDE5FF), child: Icon(Icons.person_rounded, color: Color(0xFF6D3DF5), size: 30)),
-                        const SizedBox(width: 14),
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          const Text('Kart Kampanya', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-                          Text(user?.email ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF6D6677))),
-                        ])),
-                      ]),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(height: 50, child: OutlinedButton.icon(onPressed: () async => Supabase.instance.client.auth.signOut(), icon: const Icon(Icons.logout_rounded), label: const Text('Çıkış Yap', style: TextStyle(fontWeight: FontWeight.w800)))),
-                  ],
-                ),
+                body: ListView(padding: const EdgeInsets.all(16), children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: const Color(0xFFE3DDF0))),
+                    child: Row(children: [
+                      const CircleAvatar(radius: 28, backgroundColor: Color(0xFFEDE5FF), child: Icon(Icons.person_rounded, color: Color(0xFF6D3DF5), size: 30)),
+                      const SizedBox(width: 14),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Text('Kart Kampanya', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                        Text(user?.email ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF6D6677))),
+                      ])),
+                    ]),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(height: 50, child: OutlinedButton.icon(onPressed: () async => Supabase.instance.client.auth.signOut(), icon: const Icon(Icons.logout_rounded), label: const Text('Çıkış Yap', style: TextStyle(fontWeight: FontWeight.w800)))),
+                ]),
               );
             }
           }
@@ -101,19 +95,16 @@ jobs:
               s = s.replace(marker, profile + marker, 1)
           p.write_text(s, encoding='utf-8')
           PY
-
       - name: Restore tabless card selectors
         run: python3 scripts/repair-release-reference-ui.py
       - name: Stabilize reference bottom navigation and compile helper
         run: python3 scripts/repair-reference-bottom-and-compile.py
-
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
         run: dart format lib/main.dart
       - name: Analyze Dart
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
       - name: Ensure internet permission
         run: |
           python3 - <<'PY'
@@ -125,7 +116,6 @@ jobs:
               s = s.replace('    <application', permission + '    <application', 1)
               p.write_text(s, encoding='utf-8')
           PY
-
       - name: Finalize OAuth manifest
         run: |
           python3 - <<'PY'
@@ -153,7 +143,6 @@ jobs:
           ET.SubElement(filt, 'data', {f'{{{ns}}}scheme':'io.supabase.flutter', f'{{{ns}}}host':'login-callback'})
           ET.ElementTree(root).write(path, encoding='utf-8', xml_declaration=True)
           PY
-
       - name: Verify Google OAuth flow
         run: python3 scripts/verify-oauth-flow.py
       - name: Build APK
