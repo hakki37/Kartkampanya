@@ -11,9 +11,6 @@ if smart < 0 or mycards < 0:
 
 segment = s[smart:mycards]
 
-# The generated card can contain either `onTap: () => ...` or
-# `onTap: () { ... }` depending on the earlier UI patch. Do not depend on
-# indentation or the exact closing braces of the bottom sheet.
 start_re = re.compile(
     r'onTap\s*:\s*\(\)\s*(?:=>\s*showModalBottomSheet\s*\(|\{\s*showModalBottomSheet\s*\()',
     re.S,
@@ -130,7 +127,7 @@ if 'class CampaignDetailPage extends StatelessWidget {' not in s:
                   }
                 },
                 icon: const Icon(Icons.open_in_new_rounded),
-                label: const Text('Kampanya Kaynağına Git'),
+                label: const Text('Kampanyaya Git'),
               ),
             ),
           ],
@@ -154,7 +151,6 @@ if 'class CampaignDetailPage extends StatelessWidget {' not in s:
         raise SystemExit('MyCardsPage marker not found')
     s = s.replace(marker, detail + marker, 1)
 
-# Keep bank/card matching robust across common naming variants.
 old = """      const aliases = <String, List<String>>{\n        'kredi': ['kredi', 'kredi karti', 'credit'],"""
 new = """      const aliases = <String, List<String>>{\n        'teb': ['teb', 'cepteteb'],\n        'cepteteb': ['teb', 'cepteteb'],\n        'qnb': ['qnb', 'cardfinans'],\n        'cardfinans': ['qnb', 'cardfinans'],\n        'kredi': ['kredi', 'kredi karti', 'credit'],"""
 if old in s:
