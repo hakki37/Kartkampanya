@@ -4,6 +4,47 @@ p = Path('lib/main.dart')
 s = p.read_text(encoding='utf-8')
 
 
+def class_end(src, start):
+    brace = src.find('{', start)
+    if brace < 0:
+        raise SystemExit('class brace not found')
+    depth = 0
+    quote = None
+    esc = False
+    for i in range(brace, len(src)):
+        ch = src[i]
+        if quote:
+            if esc:
+                esc = False
+            elif ch == '\\':
+                esc = True
+            elif ch == quote:
+                quote = None
+        elif ch in "'\"":
+            quote = ch
+        elif ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                return i + 1
+    raise SystemExit('unbalanced Dart class')
+
+
+def remove_all_classes(src, marker):
+    positions = []
+    pos = 0
+    while True:
+        i = src.find(marker, pos)
+        if i < 0:
+            break
+        positions.append(i)
+        pos = i + 1
+    for i in reversed(positions):
+        src = src[:i] + src[class_end(src, i):]
+    return src
+
+
 def replace_class(src, name, replacement):
     start = src.find('class ' + name)
     if start < 0:
@@ -30,6 +71,10 @@ def replace_class(src, name, replacement):
             if depth == 0:
                 return src[:start] + replacement + src[i + 1:]
     raise SystemExit(f'{name} end not found')
+
+# Remove stale shell state(s) before replacing MainShell. The previous shell
+# replacement only replaced the widget class, leaving its old State class behind.
+s = remove_all_classes(s, 'class _MainShellState extends State<MainShell> {')
 
 shell = r'''class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -161,5 +206,69 @@ if start >= 0 and end > start:
 else:
     raise SystemExit('MyCardsPage boundaries not found')
 
+# Keep the campaign date parser at top level and before the generated card.
+if 'DateTime? parseCampaignDate(' not in s:
+    helper = r'''DateTime? parseCampaignDate(String value) {
+  final text = value.trim();
+  final direct = DateTime.tryParse(text);
+  if (direct != null) return direct;
+  final m = RegExp(r'(\d{1,2})[./-](\d{1,2})[./-](\d{4})').firstMatch(text);
+  if (m == null) return null;
+  return DateTime.tryParse('${m.group(3)}-${m.group(2)!.padLeft(2, '0')}-${m.group(1)!.padLeft(2, '0')}');
+}
+
+'''
+    marker = 'class SmartCampaignCard extends StatelessWidget {'
+    if marker not in s:
+        raise SystemExit('SmartCampaignCard marker not found for date helper')
+    s = s.replace(marker, helper + marker, 1)
+
+# MyCardsPage uses CatalogLogo for bank/network identity.
+if 'class CatalogLogo extends StatelessWidget' not in s:
+    logo = r'''class CatalogLogo extends StatelessWidget {
+  final String label;
+  const CatalogLogo({super.key, required this.label});
+
+  String _domain() {
+    final x = label.toLowerCase().replaceAll(' ', '');
+    if (x == 'visa') return 'visa.com';
+    if (x == 'mastercard') return 'mastercard.com';
+    if (x == 'troy') return 'troy.com.tr';
+    if (x.contains('akbank')) return 'akbank.com';
+    if (x.contains('garanti')) return 'garantibbva.com.tr';
+    if (x.contains('yapi') || x.contains('yapıkredi')) return 'yapikredi.com.tr';
+    if (x.contains('isbank') || x.contains('işbank')) return 'isbank.com.tr';
+    if (x.contains('qnb') || x.contains('cardfinans')) return 'qnb.com.tr';
+    if (x.contains('teb')) return 'teb.com.tr';
+    if (x.contains('ziraat')) return 'ziraatbank.com.tr';
+    if (x.contains('halk')) return 'halkbank.com.tr';
+    if (x.contains('vakif')) return 'vakifbank.com.tr';
+    if (x.contains('deniz')) return 'denizbank.com';
+    if (x.contains('ing')) return 'ing.com.tr';
+    return '';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final domain = _domain();
+    if (domain.isEmpty) {
+      return Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11));
+    }
+    return Image.network(
+      'https://www.google.com/s2/favicons?domain=$domain&sz=128',
+      width: 34,
+      height: 34,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11)),
+    );
+  }
+}
+
+'''
+    marker = 'class UserCard {'
+    if marker not in s:
+        raise SystemExit('UserCard marker not found for CatalogLogo')
+    s = s.replace(marker, logo + marker, 1)
+
 p.write_text(s, encoding='utf-8')
-print('Reference bottom navigation locked to Ana Sayfa / Kampanyalar / Kartlarım / Kategoriler / Profil and card page kept tabbed')
+print('Reference navigation repaired: duplicate shell state removed; campaign date/logo helpers guaranteed')
