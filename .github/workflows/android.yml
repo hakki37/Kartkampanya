@@ -18,6 +18,8 @@ jobs:
         run: flutter create --platforms=android .
       - name: Configure Google OAuth Android callback
         run: python3 scripts/configure-google-oauth-android.py
+      - name: Apply clean light reference UI
+        run: python3 scripts/retheme-v30-clean.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
