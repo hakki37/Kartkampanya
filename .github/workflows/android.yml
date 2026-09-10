@@ -32,8 +32,6 @@ jobs:
         run: dart format lib/main.dart
       - name: Analyze Dart
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
-      - name: Verify Google OAuth flow
-        run: python3 scripts/verify-oauth-flow.py
       - name: Ensure internet permission
         run: |
           python3 - <<'PY'
@@ -73,6 +71,8 @@ jobs:
           ET.ElementTree(root).write(path, encoding='utf-8', xml_declaration=True)
           print('OAuth manifest ready')
           PY
+      - name: Verify Google OAuth flow
+        run: python3 scripts/verify-oauth-flow.py
       - name: Build APK
         run: flutter build apk --release
       - name: Upload APK
