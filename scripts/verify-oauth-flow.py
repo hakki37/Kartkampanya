@@ -24,7 +24,7 @@ if '<action android:name="android.intent.action.VIEW" />' not in manifest:
 if '<category android:name="android.intent.category.BROWSABLE" />' not in manifest:
     raise SystemExit('OAuth verification failed: BROWSABLE category missing')
 
-activities = re.findall(r'<activity\\b[^>]*android:name="([^"]+)"', manifest)
+activities = re.findall(r'<activity\b[^>]*android:name="([^"]+)"', manifest)
 main_activities = [a for a in activities if a.endswith('.MainActivity') or a == 'MainActivity']
 if len(main_activities) != 1:
     raise SystemExit(f'OAuth verification failed: expected exactly one MainActivity, found {len(main_activities)}')
