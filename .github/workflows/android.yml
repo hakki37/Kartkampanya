@@ -20,6 +20,8 @@ jobs:
         run: python3 scripts/configure-google-oauth-android.py
       - name: Apply clean final catalog UI
         run: python3 scripts/apply-final-clean-ui.py
+      - name: Ensure campaign detail anchor
+        run: python3 scripts/ensure-campaign-detail-anchor.py
       - name: Repair final catalog UI syntax
         run: python3 scripts/repair-final-clean-ui.py
       - name: Restore campaign detail and fix widget test
