@@ -18,50 +18,6 @@ jobs:
         run: flutter create --platforms=android .
       - name: Configure Google OAuth Android callback
         run: python3 scripts/configure-google-oauth-android.py
-      - name: Apply reference UI
-        run: python3 scripts/reference-ui-final.py
-      - name: Repair reference UI Dart
-        run: python3 scripts/repair-v32-reference-ui.py
-      - name: Final syntax repair
-        run: python3 scripts/fix-v31-clean-syntax.py
-      - name: Lock reference visual theme
-        run: python3 scripts/apply-reference-v40.py
-      - name: Remove generated top-level braces
-        run: python3 scripts/fix-top-level-braces.py
-      - name: Final analysis cleanup
-        run: python3 scripts/fix-v41-analysis.py
-      - name: Lock reference bottom navigation
-        run: python3 scripts/lock-bottom-nav-v42.py
-      - name: Lock HTML reference login screen
-        run: python3 scripts/lock-reference-login-v2.py
-      - name: Remove duplicate login state
-        run: python3 scripts/fix-login-state-duplicate-v44.py
-      - name: Lock campaign bank and benefit details
-        run: python3 scripts/lock-campaign-details-v43.py
-      - name: Apply catalog campaign card layout
-        run: python3 scripts/apply-v15-catalog-ui.py
-      - name: Polish campaign benefit text and logos
-        run: python3 scripts/apply-v16-catalog-polish.py
-      - name: Open campaigns in detail view
-        run: python3 scripts/fix-v18-robust.py
-      - name: Use separate card selection screen
-        run: python3 scripts/fix-v19-mycards-selection.py
-      - name: Fix campaign interactions and categories
-        run: python3 scripts/fix-v20-campaign-interactions.py
-      - name: Guarantee campaign benefit helper
-        run: python3 scripts/fix-v21-catalog-helper.py
-      - name: Apply reference campaign card v28
-        run: python3 scripts/apply-v28-catalog-reference.py
-      - name: Apply exact uploaded reference UI v29
-        run: python3 scripts/apply-v29-exact-reference.py
-      - name: Repair v29 filter action
-        run: python3 scripts/repair-v29-filter-method.py
-      - name: Apply Claude Flutter visual reference
-        run: python3 scripts/apply-claude-reference-ui.py
-      - name: Repair Claude UI Dart syntax
-        run: python3 scripts/repair-claude-ui-syntax.py
-      - name: Remove trailing generated Dart brace
-        run: python3 scripts/remove-trailing-generated-brace.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
@@ -81,55 +37,37 @@ jobs:
               s = s.replace('    <application', permission + '    <application', 1)
               p.write_text(s, encoding='utf-8')
           PY
-      - name: Finalize and validate OAuth manifest
+      - name: Finalize OAuth manifest
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import xml.etree.ElementTree as ET
           path = Path('android/app/src/main/AndroidManifest.xml')
-          android_ns = 'http://schemas.android.com/apk/res/android'
-          ET.register_namespace('android', android_ns)
+          ns = 'http://schemas.android.com/apk/res/android'
+          ET.register_namespace('android', ns)
           root = ET.parse(path).getroot()
-          application = next((e for e in root if e.tag == 'application'), None)
-          if application is None: raise SystemExit('OAuth manifest repair failed: application element not found')
-          name_attr = f'{{{android_ns}}}name'
-          exported_attr = f'{{{android_ns}}}exported'
-          activities = [e for e in list(application) if e.tag == 'activity']
-          main = [e for e in activities if e.get(name_attr, '').endswith('MainActivity') or e.get(name_attr) == 'MainActivity']
-          if not main: raise SystemExit('OAuth manifest repair failed: MainActivity not found')
-          kept = main[0]
-          original_index = list(application).index(kept)
-          for element in main[1:]: application.remove(element)
-          application.remove(kept); application.insert(original_index, kept)
-          for child in list(kept):
-              if child.tag != 'intent-filter': continue
-              is_supabase = any(data.tag == 'data' and data.get(f'{{{android_ns}}}scheme') == 'io.supabase.flutter' and data.get(f'{{{android_ns}}}host') == 'login-callback' for data in child)
-              if is_supabase: kept.remove(child)
-          kept.set(exported_attr, 'true')
-          callback = ET.Element('intent-filter')
-          ET.SubElement(callback, 'action', {f'{{{android_ns}}}name': 'android.intent.action.VIEW'})
-          ET.SubElement(callback, 'category', {f'{{{android_ns}}}name': 'android.intent.category.DEFAULT'})
-          ET.SubElement(callback, 'category', {f'{{{android_ns}}}name': 'android.intent.category.BROWSABLE'})
-          ET.SubElement(callback, 'data', {f'{{{android_ns}}}scheme': 'io.supabase.flutter', f'{{{android_ns}}}host': 'login-callback'})
-          kept.append(callback)
+          app = next((e for e in root if e.tag == 'application'), None)
+          if app is None: raise SystemExit('application not found')
+          name = f'{{{ns}}}name'
+          exported = f'{{{ns}}}exported'
+          mains = [e for e in list(app) if e.tag == 'activity' and e.get(name, '').endswith('MainActivity')]
+          if len(mains) != 1: raise SystemExit(f'Expected exactly one MainActivity, found {len(mains)}')
+          main = mains[0]
+          for child in list(main):
+              if child.tag == 'intent-filter' and any(d.tag == 'data' and d.get(f'{{{ns}}}scheme') == 'io.supabase.flutter' and d.get(f'{{{ns}}}host') == 'login-callback' for d in child):
+                  main.remove(child)
+          main.set(exported, 'true')
+          filt = ET.SubElement(main, 'intent-filter')
+          ET.SubElement(filt, 'action', {f'{{{ns}}}name':'android.intent.action.VIEW'})
+          ET.SubElement(filt, 'category', {f'{{{ns}}}name':'android.intent.category.DEFAULT'})
+          ET.SubElement(filt, 'category', {f'{{{ns}}}name':'android.intent.category.BROWSABLE'})
+          ET.SubElement(filt, 'data', {f'{{{ns}}}scheme':'io.supabase.flutter', f'{{{ns}}}host':'login-callback'})
           ET.ElementTree(root).write(path, encoding='utf-8', xml_declaration=True)
-          root = ET.parse(path).getroot()
-          application = next((e for e in root if e.tag == 'application'), None)
-          activities = [e for e in list(application) if e.tag == 'activity'] if application is not None else []
-          main = [e for e in activities if e.get(name_attr, '').endswith('MainActivity') or e.get(name_attr) == 'MainActivity']
-          callbacks = []
-          for activity in main:
-              for child in activity:
-                  if child.tag != 'intent-filter': continue
-                  if any(d.tag == 'data' and d.get(f'{{{android_ns}}}scheme') == 'io.supabase.flutter' and d.get(f'{{{android_ns}}}host') == 'login-callback' for d in child): callbacks.append(child)
-          if len(main) != 1: raise SystemExit(f'Expected exactly 1 MainActivity, found {len(main)}')
-          if len(callbacks) != 1: raise SystemExit(f'Expected exactly 1 Supabase callback intent filter, found {len(callbacks)}')
-          print('Final OAuth manifest valid: exactly one MainActivity and one Supabase callback')
+          print('OAuth manifest ready')
           PY
       - name: Build APK
         run: flutter build apk --release
       - name: Upload APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: kart-kampanya-reference-apk
