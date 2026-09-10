@@ -54,6 +54,8 @@ jobs:
         run: python3 scripts/apply-v28-catalog-reference.py
       - name: Apply exact uploaded reference UI v29
         run: python3 scripts/apply-v29-exact-reference.py
+      - name: Repair v29 filter action
+        run: python3 scripts/repair-v29-filter-method.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
@@ -78,41 +80,25 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import xml.etree.ElementTree as ET
-
           path = Path('android/app/src/main/AndroidManifest.xml')
           android_ns = 'http://schemas.android.com/apk/res/android'
           ET.register_namespace('android', android_ns)
           root = ET.parse(path).getroot()
           application = next((e for e in root if e.tag == 'application'), None)
-          if application is None:
-              raise SystemExit('OAuth manifest repair failed: application element not found')
-
+          if application is None: raise SystemExit('OAuth manifest repair failed: application element not found')
           name_attr = f'{{{android_ns}}}name'
           exported_attr = f'{{{android_ns}}}exported'
           activities = [e for e in list(application) if e.tag == 'activity']
           main = [e for e in activities if e.get(name_attr, '').endswith('MainActivity') or e.get(name_attr) == 'MainActivity']
-          if not main:
-              raise SystemExit('OAuth manifest repair failed: MainActivity not found')
-
+          if not main: raise SystemExit('OAuth manifest repair failed: MainActivity not found')
           kept = main[0]
           original_index = list(application).index(kept)
-          for element in main[1:]:
-              application.remove(element)
-          application.remove(kept)
-          application.insert(original_index, kept)
-
+          for element in main[1:]: application.remove(element)
+          application.remove(kept); application.insert(original_index, kept)
           for child in list(kept):
-              if child.tag != 'intent-filter':
-                  continue
-              is_supabase = any(
-                  data.tag == 'data'
-                  and data.get(f'{{{android_ns}}}scheme') == 'io.supabase.flutter'
-                  and data.get(f'{{{android_ns}}}host') == 'login-callback'
-                  for data in child
-              )
-              if is_supabase:
-                  kept.remove(child)
-
+              if child.tag != 'intent-filter': continue
+              is_supabase = any(data.tag == 'data' and data.get(f'{{{android_ns}}}scheme') == 'io.supabase.flutter' and data.get(f'{{{android_ns}}}host') == 'login-callback' for data in child)
+              if is_supabase: kept.remove(child)
           kept.set(exported_attr, 'true')
           callback = ET.Element('intent-filter')
           ET.SubElement(callback, 'action', {f'{{{android_ns}}}name': 'android.intent.action.VIEW'})
@@ -121,7 +107,6 @@ jobs:
           ET.SubElement(callback, 'data', {f'{{{android_ns}}}scheme': 'io.supabase.flutter', f'{{{android_ns}}}host': 'login-callback'})
           kept.append(callback)
           ET.ElementTree(root).write(path, encoding='utf-8', xml_declaration=True)
-
           root = ET.parse(path).getroot()
           application = next((e for e in root if e.tag == 'application'), None)
           activities = [e for e in list(application) if e.tag == 'activity'] if application is not None else []
@@ -129,14 +114,10 @@ jobs:
           callbacks = []
           for activity in main:
               for child in activity:
-                  if child.tag != 'intent-filter':
-                      continue
-                  if any(d.tag == 'data' and d.get(f'{{{android_ns}}}scheme') == 'io.supabase.flutter' and d.get(f'{{{android_ns}}}host') == 'login-callback' for d in child):
-                      callbacks.append(child)
-          if len(main) != 1:
-              raise SystemExit(f'Expected exactly 1 MainActivity, found {len(main)}')
-          if len(callbacks) != 1:
-              raise SystemExit(f'Expected exactly 1 Supabase callback intent filter, found {len(callbacks)}')
+                  if child.tag != 'intent-filter': continue
+                  if any(d.tag == 'data' and d.get(f'{{{android_ns}}}scheme') == 'io.supabase.flutter' and d.get(f'{{{android_ns}}}host') == 'login-callback' for d in child): callbacks.append(child)
+          if len(main) != 1: raise SystemExit(f'Expected exactly 1 MainActivity, found {len(main)}')
+          if len(callbacks) != 1: raise SystemExit(f'Expected exactly 1 Supabase callback intent filter, found {len(callbacks)}')
           print('Final OAuth manifest valid: exactly one MainActivity and one Supabase callback')
           PY
       - name: Build APK
