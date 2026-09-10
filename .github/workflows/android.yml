@@ -22,6 +22,8 @@ jobs:
         run: python3 scripts/retheme-v30-clean.py
       - name: Restore functional Google OAuth login
         run: python3 scripts/lock-reference-login-v2.py
+      - name: Apply parser-safe final reference repair
+        run: python3 scripts/repair-v32-reference-ui.py && python3 scripts/final-reference-repair.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
