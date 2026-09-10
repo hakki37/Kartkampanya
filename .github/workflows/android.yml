@@ -18,14 +18,8 @@ jobs:
         run: flutter create --platforms=android .
       - name: Configure Google OAuth Android callback
         run: python3 scripts/configure-google-oauth-android.py
-      - name: Apply clean light reference UI
-        run: python3 scripts/retheme-v30-clean.py
-      - name: Restore functional Google OAuth login
-        run: python3 scripts/lock-reference-login-v2.py
-      - name: Apply parser-safe final reference repair
-        run: python3 scripts/repair-v32-reference-ui.py && python3 scripts/final-reference-repair.py
-      - name: Apply final catalog visual polish
-        run: python3 scripts/final-reference-polish.py
+      - name: Apply clean final catalog UI
+        run: python3 scripts/apply-final-clean-ui.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
