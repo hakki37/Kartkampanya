@@ -71,6 +71,21 @@ card = r'''class SmartCampaignCard extends StatelessWidget {
     return '';
   }
 
+  DateTime? parseDate(String value) {
+    final normalized = value.trim();
+    if (normalized.isEmpty) return null;
+    final iso = DateTime.tryParse(normalized);
+    if (iso != null) return iso;
+    final match = RegExp(r'(\\d{1,2})[./-](\\d{1,2})[./-](\\d{4})').firstMatch(normalized);
+    if (match != null) {
+      final day = match.group(1)!.padLeft(2, '0');
+      final month = match.group(2)!.padLeft(2, '0');
+      final year = match.group(3)!;
+      return DateTime.tryParse('$year-$month-$day');
+    }
+    return null;
+  }
+
   String dateRange() {
     final direct = first(['date_range', 'validity', 'campaign_dates']);
     if (direct.isNotEmpty) return direct;
@@ -78,7 +93,7 @@ card = r'''class SmartCampaignCard extends StatelessWidget {
     final end = first(['end_date', 'ends_at']);
     if (start.isEmpty && end.isEmpty) return '';
     String shortDate(String value) {
-      final parsed = parseCampaignDate(value);
+      final parsed = parseDate(value);
       if (parsed == null) return value;
       const months = ['', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
       return '${parsed.day} ${months[parsed.month]} ${parsed.year}';
