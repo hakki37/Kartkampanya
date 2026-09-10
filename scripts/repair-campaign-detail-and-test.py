@@ -31,6 +31,65 @@ def replace_class(src, name, replacement):
                 return src[:start] + replacement + src[i + 1:]
     raise SystemExit(name + ' end not found')
 
+# Keep the detail page independent from other generated catalog classes. Later
+# repair scripts are allowed to replace SmartCampaignCard without breaking the
+# detail route's logo helpers.
+helpers = r'''String _detailBankDomain(String bank) {
+  final b = bank.toLowerCase().replaceAll(' ', '');
+  if (b.contains('garanti')) return 'garantibbva.com.tr';
+  if (b.contains('akbank')) return 'akbank.com';
+  if (b.contains('işbank') || b.contains('isbank') || b.contains('işbankası') || b.contains('isbankasi')) return 'isbank.com.tr';
+  if (b.contains('yapı') || b.contains('yapi') || b.contains('world')) return 'yapikredi.com.tr';
+  if (b.contains('qnb') || b.contains('cardfinans')) return 'qnb.com.tr';
+  if (b.contains('teb') || b.contains('cepteteb')) return 'teb.com.tr';
+  if (b.contains('ing')) return 'ing.com.tr';
+  if (b.contains('enpara')) return 'enpara.com';
+  if (b.contains('vakıf') || b.contains('vakif')) return 'vakifbank.com.tr';
+  if (b.contains('halk')) return 'halkbank.com.tr';
+  if (b.contains('ziraat')) return 'ziraatbank.com.tr';
+  if (b.contains('deniz')) return 'denizbank.com';
+  if (b.contains('fibabanka')) return 'fibabanka.com.tr';
+  return '';
+}
+
+String _detailBrandDomain(String card) {
+  final c = card.toLowerCase();
+  if (c.contains('world')) return 'worldcard.com.tr';
+  if (c.contains('maximum')) return 'maximum.com.tr';
+  if (c.contains('bonus')) return 'bonus.com.tr';
+  if (c.contains('axess')) return 'axess.com.tr';
+  if (c.contains('cardfinans') || c.contains('card finans')) return 'qnb.com.tr';
+  if (c.contains('paraf')) return 'paraf.com.tr';
+  return '';
+}
+
+String _detailLogoUrl(String domain) => 'https://www.google.com/s2/favicons?domain=$domain&sz=128';
+
+class _DetailLogo extends StatelessWidget {
+  final String url;
+  final double size;
+  const _DetailLogo(this.url, {this.size = 40});
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(10),
+    child: Image.network(
+      url,
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => const Icon(Icons.credit_card_rounded, size: 28, color: Color(0xFF6C5CE7)),
+    ),
+  );
+}
+'''
+
+if 'String _detailBankDomain(String bank)' not in s:
+    marker = 'class CampaignDetailPage extends StatelessWidget {'
+    if marker not in s:
+        raise SystemExit('CampaignDetailPage marker not found for helper insertion')
+    s = s.replace(marker, helpers + '\n' + marker, 1)
+
 detail = r'''class CampaignDetailPage extends StatelessWidget {
   final Map<String, dynamic> campaign;
   const CampaignDetailPage({super.key, required this.campaign});
@@ -115,8 +174,8 @@ detail = r'''class CampaignDetailPage extends StatelessWidget {
     final minimum = _first(['min_spend', 'minimum_spend', 'minimum_spending']);
     final benefit = _benefit();
     final source = _first(['source_url', 'detail_url', 'url']);
-    final bankDomain = _bankDomain(bank);
-    final cardDomain = _brandDomain(card);
+    final bankDomain = _detailBankDomain(bank);
+    final cardDomain = _detailBrandDomain(card);
     final heading = title.isNotEmpty ? title : (merchant.isNotEmpty ? '$merchant Kampanyası' : 'Kampanya');
 
     return Scaffold(
@@ -145,7 +204,7 @@ detail = r'''class CampaignDetailPage extends StatelessWidget {
                     height: 62,
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                    child: _CatalogLogo(_logoUrl(bankDomain), size: 48),
+                    child: _DetailLogo(_detailLogoUrl(bankDomain), size: 48),
                   )
                 else
                   Container(
@@ -211,7 +270,7 @@ detail = r'''class CampaignDetailPage extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFE8E3F5)), borderRadius: BorderRadius.circular(18)),
               child: Row(children: [
-                _CatalogLogo(_logoUrl(cardDomain), size: 36),
+                _DetailLogo(_detailLogoUrl(cardDomain), size: 36),
                 const SizedBox(width: 10),
                 Expanded(child: Text(card, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF30265D)))),
               ]),
@@ -259,4 +318,4 @@ if test.exists():
     ts = ts.replace('MyApp()', 'KartKampanyaApp()')
     test.write_text(ts, encoding='utf-8')
 
-print('Campaign detail upgraded to reference white/purple card layout')
+print('Campaign detail upgraded to reference white/purple card layout with self-contained logos')
