@@ -36,6 +36,22 @@ jobs:
         run: python3 scripts/lock-reference-login-v2.py
       - name: Repair login/app class boundary
         run: python3 scripts/repair-login-app-boundary.py
+      - name: Repair generated login syntax
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/main.dart')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace(
+              "child: Text('Giriş Yap', style: TextStyle(fontWeight: FontWeight.w700, color: !register ? const Color(0xFF6C5CE7) : const Color(0xFF7C7A94))),",
+              "child: Text('Giriş Yap', style: TextStyle(fontWeight: FontWeight.w700, color: !register ? const Color(0xFF6C5CE7) : const Color(0xFF7C7A94))),",
+          )
+          s = s.replace(
+              "child: Text('Kayıt Ol', style: TextStyle(fontWeight: FontWeight.w700, color: register ? const Color(0xFF6C5CE7) : const Color(0xFF7C7A94))),",
+              "child: Text('Kayıt Ol', style: TextStyle(fontWeight: FontWeight.w700, color: register ? const Color(0xFF6C5CE7) : const Color(0xFF7C7A94))),",
+          )
+          p.write_text(s, encoding='utf-8')
+          PY
       - name: Repair duplicate login state
         run: python3 scripts/repair-duplicate-login-state.py
       - name: Apply exact reference campaign card UI
