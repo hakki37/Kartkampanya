@@ -8,6 +8,8 @@ required_main = {
     'signInWithOAuth': 'Supabase Google OAuth call',
     'OAuthProvider.google': 'Google provider',
     "redirectTo: 'io.supabase.flutter://login-callback/'": 'Android OAuth redirect',
+    'authScreenLaunchMode: LaunchMode.externalApplication': 'external browser OAuth launch',
+    "'Google ile Giriş Yap'": 'Google login button',
     'onAuthStateChange': 'auth state listener',
     'currentSession': 'session gate',
 }
@@ -24,9 +26,15 @@ if '<action android:name="android.intent.action.VIEW" />' not in manifest:
 if '<category android:name="android.intent.category.BROWSABLE" />' not in manifest:
     raise SystemExit('OAuth verification failed: BROWSABLE category missing')
 
+if not re.search(
+    r'<data[^>]*android:scheme="io\.supabase\.flutter"[^>]*android:host="login-callback"',
+    manifest,
+):
+    raise SystemExit('OAuth verification failed: exact login-callback deep link missing')
+
 activities = re.findall(r'<activity\b[^>]*android:name="([^"]+)"', manifest)
 main_activities = [a for a in activities if a.endswith('.MainActivity') or a == 'MainActivity']
 if len(main_activities) != 1:
     raise SystemExit(f'OAuth verification failed: expected exactly one MainActivity, found {len(main_activities)}')
 
-print('OAuth verification passed: Google provider, signInWithOAuth, deep-link callback, and auth-state return are present.')
+print('OAuth verification passed: Google button, provider, signInWithOAuth, external browser launch, exact Android deep-link callback, and auth-state return are present.')
