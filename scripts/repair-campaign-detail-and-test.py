@@ -35,13 +35,9 @@ detail = r'''class CampaignDetailPage extends StatelessWidget {
   final Map<String, dynamic> campaign;
   const CampaignDetailPage({super.key, required this.campaign});
 
-  String _text(dynamic value) => value == null ? '' : '$value'
+  String _text(dynamic value) => value == null ? '' : decodeHtmlEntities('$value')
       .replaceAll(RegExp(r'<[^>]*>'), ' ')
-      .replaceAll('&nbsp;', ' ')
-      .replaceAll('&amp;', '&')
-      .replaceAll('&quot;', '"')
-      .replaceAll('&#39;', "'")
-      .replaceAll(RegExp(r'\s+'), ' ')
+      .replaceAll(RegExp(r'\\s+'), ' ')
       .trim();
 
   String _first(List<String> keys) {
@@ -66,64 +62,178 @@ detail = r'''class CampaignDetailPage extends StatelessWidget {
     }
     if (reward.isNotEmpty) return reward;
     if (installment.isNotEmpty) return installment.toLowerCase().contains('taksit') ? installment : '$installment taksit';
+    final title = _first(['title', 'name']);
+    final description = _first(['campaign_text', 'description', 'summary', 'details', 'content']);
+    final text = '$title $description'.toLowerCase();
+    final percent = RegExp(r'%\\s*(\\d+(?:[.,]\\d+)?)').firstMatch(text)?.group(1);
+    if (percent != null) return '%${percent.replaceAll(',', '.')} indirim';
+    final tl = RegExp(r'(\\d[\\d.]*)\\s*tl').firstMatch(text)?.group(1);
+    if (tl != null) return '${tl.replaceAll('.', '')} TL avantaj';
+    final count = RegExp(r'(\\d+)\\s*taksit').firstMatch(text)?.group(1);
+    if (count != null) return '$count taksit';
     return '';
   }
 
-  Widget _info(String title, String value, IconData icon) => Card(
-    margin: const EdgeInsets.only(bottom: 8),
-    child: ListTile(
-      leading: Icon(icon),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-      subtitle: Text(value),
+  Widget _chip(String text, IconData icon) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF0ECFF),
+      borderRadius: BorderRadius.circular(12),
     ),
+    child: Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 15, color: const Color(0xFF6246D9)),
+      const SizedBox(width: 6),
+      Text(text, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF30265D))),
+    ]),
+  );
+
+  Widget _section(String title, String text) => Container(
+    margin: const EdgeInsets.only(top: 12),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: const Color(0xFFE8E3F5)),
+      borderRadius: BorderRadius.circular(18),
+    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1E1B3A))),
+      const SizedBox(height: 9),
+      SelectableText(text, style: const TextStyle(fontSize: 14, height: 1.55, color: Color(0xFF5E5A70))),
+    ]),
   );
 
   @override
   Widget build(BuildContext context) {
     final title = _first(['title', 'name']);
     final merchant = _first(['merchant', 'brand']);
-    final description = _first(['description', 'campaign_text', 'summary', 'details', 'content']);
-    final conditions = _first(['conditions', 'terms', 'usage_conditions', 'terms_text']);
+    final description = _first(['campaign_text', 'description', 'summary', 'details', 'content']);
+    final conditions = _first(['conditions', 'usage_conditions', 'terms_text']);
     final bank = _first(['bank_name', 'bank', 'card_bank']);
-    final card = _first(['card_name', 'card', 'card_type']);
+    final card = _first(['card_name', 'card']);
     final network = _first(['network', 'card_network']);
     final category = _first(['category']);
     final minimum = _first(['min_spend', 'minimum_spend', 'minimum_spending']);
     final benefit = _benefit();
+    final source = _first(['source_url', 'detail_url', 'url']);
+    final bankDomain = _bankDomain(bank);
+    final cardDomain = _brandDomain(card);
     final heading = title.isNotEmpty ? title : (merchant.isNotEmpty ? '$merchant Kampanyası' : 'Kampanya');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Kampanya Detayı', style: TextStyle(fontWeight: FontWeight.w900))),
+      backgroundColor: const Color(0xFFF8F7FC),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF8F7FC),
+        foregroundColor: const Color(0xFF1E1B3A),
+        elevation: 0,
+        title: const Text('Kampanya Detayı', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+      ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 34),
         children: [
-          Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (merchant.isNotEmpty) Text(merchant, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 7),
-            Text(heading, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900, height: 1.18)),
-            if (bank.isNotEmpty || card.isNotEmpty || network.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Wrap(spacing: 7, runSpacing: 7, children: [if (bank.isNotEmpty) Chip(label: Text(bank)), if (card.isNotEmpty) Chip(label: Text(card)), if (network.isNotEmpty) Chip(label: Text(network))]),
-            ],
-          ]))),
-          if (benefit.isNotEmpty) _info('Tahmini avantaj', benefit, Icons.local_offer_outlined),
-          if (minimum.isNotEmpty) _info('Minimum harcama', minimum, Icons.shopping_cart_outlined),
-          if (category.isNotEmpty) _info('Kategori', category, Icons.category_outlined),
-          if (description.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Açıklama', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 10),
-              SelectableText(description, style: const TextStyle(fontSize: 15, height: 1.5)),
-            ]))),
+          Container(
+            padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFFF0EBFF), Color(0xFFFFFFFF)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              border: Border.all(color: const Color(0xFFE0D9F5)),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                if (bankDomain.isNotEmpty)
+                  Container(
+                    width: 62,
+                    height: 62,
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                    child: _CatalogLogo(_logoUrl(bankDomain), size: 48),
+                  )
+                else
+                  Container(
+                    width: 62,
+                    height: 62,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: const Color(0xFF6C5CE7), borderRadius: BorderRadius.circular(16)),
+                    child: Text(bank.isNotEmpty ? bank.substring(0, 1).toUpperCase() : 'K', style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w900)),
+                  ),
+                const SizedBox(width: 13),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  if (merchant.isNotEmpty) Text(merchant, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF6C5CE7))),
+                  if (bank.isNotEmpty) Text(bank, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1E1B3A))),
+                ])),
+              ]),
+              const SizedBox(height: 16),
+              Text(heading, style: const TextStyle(fontSize: 23, height: 1.16, fontWeight: FontWeight.w900, color: Color(0xFF17152A))),
+              if (category.isNotEmpty || card.isNotEmpty || network.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Wrap(spacing: 7, runSpacing: 7, children: [
+                  if (category.isNotEmpty) _chip(category, Icons.category_outlined),
+                  if (card.isNotEmpty) _chip(card, Icons.credit_card_outlined),
+                  if (network.isNotEmpty) _chip(network, Icons.account_tree_outlined),
+                ]),
+              ],
+            ]),
+          ),
+          if (benefit.isNotEmpty || minimum.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (benefit.isNotEmpty)
+                Expanded(child: Container(
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(color: const Color(0xFFEDE7FF), borderRadius: BorderRadius.circular(18)),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Icon(Icons.auto_awesome_rounded, color: Color(0xFF6246D9), size: 21),
+                    const SizedBox(height: 7),
+                    const Text('Avantaj', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6F6790))),
+                    const SizedBox(height: 2),
+                    Text(benefit, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF3A2A87))),
+                  ]),
+                )),
+              if (benefit.isNotEmpty && minimum.isNotEmpty) const SizedBox(width: 10),
+              if (minimum.isNotEmpty)
+                Expanded(child: Container(
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFE5E1EF)), borderRadius: BorderRadius.circular(18)),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Icon(Icons.shopping_bag_outlined, color: Color(0xFF6C5CE7), size: 21),
+                    const SizedBox(height: 7),
+                    const Text('Minimum harcama', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6F6790))),
+                    const SizedBox(height: 2),
+                    Text(minimum, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF30265D))),
+                  ]),
+                )),
+            ]),
           ],
-          if (conditions.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Kampanya şartları', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 10),
-              SelectableText(conditions, style: const TextStyle(fontSize: 15, height: 1.5)),
-            ]))),
+          if (description.isNotEmpty) _section('Kampanya açıklaması', description),
+          if (conditions.isNotEmpty) _section('Kampanya şartları', conditions),
+          if (cardDomain.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFE8E3F5)), borderRadius: BorderRadius.circular(18)),
+              child: Row(children: [
+                _CatalogLogo(_logoUrl(cardDomain), size: 36),
+                const SizedBox(width: 10),
+                Expanded(child: Text(card, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF30265D)))),
+              ]),
+            ),
+          ],
+          if (source.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 52,
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () async {
+                  final uri = Uri.tryParse(source);
+                  if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF6C5CE7), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17))),
+                icon: const Icon(Icons.open_in_new_rounded),
+                label: const Text('Kampanyaya Git', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
+              ),
+            ),
           ],
         ],
       ),
@@ -149,4 +259,4 @@ if test.exists():
     ts = ts.replace('MyApp()', 'KartKampanyaApp()')
     test.write_text(ts, encoding='utf-8')
 
-print('Campaign detail restored with separated description/conditions and semantic benefit')
+print('Campaign detail upgraded to reference white/purple card layout')
