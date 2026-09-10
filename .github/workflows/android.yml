@@ -60,6 +60,8 @@ jobs:
         run: python3 scripts/apply-claude-reference-ui.py
       - name: Repair Claude UI Dart syntax
         run: python3 scripts/repair-claude-ui-syntax.py
+      - name: Remove trailing generated Dart brace
+        run: python3 scripts/remove-trailing-generated-brace.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
