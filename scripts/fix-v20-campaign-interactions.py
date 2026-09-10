@@ -3,47 +3,48 @@ from pathlib import Path
 p = Path('lib/main.dart')
 s = p.read_text(encoding='utf-8')
 
+# v16 normally adds this helper, but make v20 self-contained so later refactors
+# can never leave SmartCampaignCard calling an undefined method.
+if 'String _catalogBenefitText(Map<String, dynamic> campaign)' not in s:
+    marker = 'class _CatalogLogo extends StatelessWidget {'
+    helper = r'''String _catalogBenefitText(Map<String, dynamic> campaign) {
+  final title = decodeHtmlEntities('${campaign['title'] ?? ''}');
+  final desc = decodeHtmlEntities('${campaign['description'] ?? ''}');
+  final campaignText = decodeHtmlEntities('${campaign['campaign_text'] ?? ''}');
+  final rewardType = decodeHtmlEntities('${campaign['reward_type'] ?? ''}');
+  final text = '$title $desc $campaignText $rewardType';
 
-def replace_class(src, name, replacement):
-    start = src.find('class ' + name)
-    if start < 0:
-        raise SystemExit(f'{name} not found')
-    brace = src.find('{', start)
-    depth = 0
-    quote = None
-    esc = False
-    for i in range(brace, len(src)):
-        ch = src[i]
-        if quote:
-            if esc:
-                esc = False
-            elif ch == '\\':
-                esc = True
-            elif ch == quote:
-                quote = None
-        elif ch in "'\"":
-            quote = ch
-        elif ch == '{':
-            depth += 1
-        elif ch == '}':
-            depth -= 1
-            if depth == 0:
-                return src[:start] + replacement + src[i + 1:]
-    raise SystemExit(f'{name} end not found')
+  num? asNum(dynamic v) {
+    if (v is num) return v;
+    return num.tryParse('${v ?? ''}'.replaceAll(',', '.'));
+  }
 
-# Never display a fabricated zero-value advantage. Prefer a real numeric value,
-# then recognize qualitative benefit types from the actual campaign text.
-old = """  return '0 TL';
-}"""
-new = """  final rewardText = _norm('$title $desc $rewardType');
-  if (rewardText.contains('bonus')) return 'Bonus';
-  if (rewardText.contains('puan')) return 'Puan';
-  if (rewardText.contains('indirim')) return 'İndirim';
-  if (rewardText.contains('taksit')) return 'Taksit';
+  final percent = asNum(campaign['reward_percent']) ?? asNum(campaign['_calculatedPercent']);
+  final reward = asNum(campaign['_calculatedReward']) ??
+      asNum(campaign['_reward']) ?? asNum(campaign['reward_amount']) ?? asNum(campaign['max_reward']);
+  final installment = RegExp(r'(?<!\d)(\d+)\s*(?:taksite|taksit|taksitli)', caseSensitive: false).firstMatch(text)?.group(1);
+
+  if (installment != null) return '$installment taksit';
+  if (percent != null && percent > 0) {
+    final value = percent.toDouble();
+    return '%${value.toStringAsFixed(value == value.roundToDouble() ? 0 : 1)} indirim';
+  }
+  if (reward != null && reward > 0) return '${reward.toDouble().toStringAsFixed(0)} TL';
+  final normalized = _norm(text);
+  if (normalized.contains('bonus')) return 'Bonus';
+  if (normalized.contains('puan')) return 'Puan';
+  if (normalized.contains('indirim')) return 'İndirim';
+  if (normalized.contains('taksit')) return 'Taksit';
   return 'Avantaj tutarı belirtilmemiş';
-}"""
-if old in s:
-    s = s.replace(old, new, 1)
+}
+
+'''
+    if marker not in s:
+        raise SystemExit('Catalog logo marker not found')
+    s = s.replace(marker, helper + marker, 1)
+
+# Never display a fabricated zero-value advantage.
+s = s.replace("return '0 TL';", "return 'Avantaj tutarı belirtilmemiş';", 1)
 
 # Campaign detail must show the campaign's own text, never generic bank terms.
 start = s.find('String campaignConditions(Map<String, dynamic> campaign) {')
@@ -60,8 +61,7 @@ if start >= 0:
 '''
         s = s[:start] + fn + s[end + 1:]
 
-# Add an optional starting category to CampaignsPage so category tiles can open
-# a real, filtered campaign list instead of being decorative containers.
+# Add an optional starting category so category tiles open a filtered campaign list.
 ctor = """  final List<UserCard> cards;
   final String mode; // home | matched | all
 
@@ -101,6 +101,33 @@ if old_pill in s:
     s = s.replace(old_pill, new_pill, 1)
 
 # Replace CategoriesPage with a genuinely tappable catalog.
+def replace_class(src, name, replacement):
+    start = src.find('class ' + name)
+    if start < 0:
+        raise SystemExit(f'{name} not found')
+    brace = src.find('{', start)
+    depth = 0
+    quote = None
+    esc = False
+    for i in range(brace, len(src)):
+        ch = src[i]
+        if quote:
+            if esc:
+                esc = False
+            elif ch == '\\':
+                esc = True
+            elif ch == quote:
+                quote = None
+        elif ch in "'\"":
+            quote = ch
+        elif ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                return src[:start] + replacement + src[i + 1:]
+    raise SystemExit(f'{name} end not found')
+
 categories = r'''class CategoriesPage extends StatelessWidget {
   final List<UserCard> cards;
   const CategoriesPage({super.key, required this.cards});
@@ -113,11 +140,7 @@ categories = r'''class CategoriesPage extends StatelessWidget {
   ];
   void openCategory(BuildContext context, String value) {
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => CampaignsPage(
-        cards: cards,
-        mode: 'all',
-        initialCategory: value == 'Tümü' ? '' : value,
-      ),
+      builder: (_) => CampaignsPage(cards: cards, mode: 'all', initialCategory: value == 'Tümü' ? '' : value),
     ));
   }
   @override
@@ -153,8 +176,6 @@ categories = r'''class CategoriesPage extends StatelessWidget {
 if 'class CategoriesPage extends StatelessWidget {' in s:
     s = replace_class(s, 'CategoriesPage', categories)
 
-# MainShell must pass the user's actual cards to the category screen.
 s = s.replace('const CategoriesPage(),', 'CategoriesPage(cards: cards),', 1)
-
 p.write_text(s, encoding='utf-8')
 print('v20 campaign interactions, category navigation and advantage display fixed')
