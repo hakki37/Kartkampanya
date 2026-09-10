@@ -38,6 +38,8 @@ jobs:
         run: python3 scripts/fix-reference-mycards.py
       - name: Apply reference bottom navigation and card tabs
         run: python3 scripts/apply-v41-navigation-tabs.py
+      - name: Apply exact reference campaign card UI
+        run: python3 scripts/apply-reference-campaign-card.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
