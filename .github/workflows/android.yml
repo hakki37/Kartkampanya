@@ -34,6 +34,10 @@ jobs:
         run: python3 scripts/lock-reference-login-v2.py
       - name: Repair duplicate login state
         run: python3 scripts/repair-duplicate-login-state.py
+      - name: Restore tabbed card management page
+        run: python3 scripts/fix-reference-mycards.py
+      - name: Apply reference bottom navigation and card tabs
+        run: python3 scripts/apply-v41-navigation-tabs.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
