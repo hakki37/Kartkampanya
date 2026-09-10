@@ -24,6 +24,8 @@ jobs:
         run: python3 scripts/ensure-campaign-detail-anchor.py
       - name: Repair final catalog UI syntax
         run: python3 scripts/repair-final-clean-ui.py
+      - name: Restore card add screen
+        run: python3 scripts/fix-v19-mycards-selection.py
       - name: Restore campaign detail and fix widget test
         run: python3 scripts/repair-campaign-detail-and-test.py
       - name: Repair campaign card Dart syntax
