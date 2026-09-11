@@ -60,6 +60,41 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
     return text;
   }
 
+  String _compactDetail(String text) {
+    var clean = text.trim();
+    if (clean.isEmpty) return '';
+
+    // Scraped pages can contain the same condition paragraph dozens of times.
+    // Keep only unique, useful sentences and stop before the content becomes a wall of text.
+    final rawParts = clean
+        .split(RegExp(r'(?<=[.!?])\s+'))
+        .map((e) => e.trim())
+        .where((e) => e.length >= 18)
+        .toList();
+
+    final seen = <String>{};
+    final parts = <String>[];
+    for (final part in rawParts) {
+      final key = part
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9çğıöşüİÇĞIÖŞÜ]+'), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+      if (key.isEmpty || seen.contains(key)) continue;
+      seen.add(key);
+      parts.add(part);
+      if (parts.join(' ').length >= 700) break;
+    }
+
+    clean = parts.join(' ').trim();
+    if (clean.length > 700) {
+      final cut = clean.substring(0, 700);
+      final end = cut.lastIndexOf(RegExp(r'[.!?]'));
+      clean = (end > 220 ? cut.substring(0, end + 1) : '$cut…').trim();
+    }
+    return clean;
+  }
+
   String _summary(String text) {
     final clean = text.trim();
     if (clean.length <= 260) return clean;
@@ -71,7 +106,7 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
   @override
   Widget build(BuildContext context) {
     final c = widget.campaign;
-    final detail = _cleanDetail(c.description);
+    final detail = _compactDetail(_cleanDetail(c.description));
     final summary = _summary(detail);
 
     return Scaffold(
