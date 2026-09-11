@@ -57,18 +57,22 @@ class CampaignCard extends StatelessWidget {
     }
     final title = campaign.title;
     final description = campaign.description;
-    final titleDiscount = RegExp(r'%\s*(\d{1,3})\s*(?:indirim|indirimli|avantaj|bonus)', caseSensitive: false).firstMatch(title);
+    final text = '$title $description';
+
+    // Titles such as "%8'e varan ek indirim" and "%5 ek indirim" carry the benefit
+    // even when the database reward_percent field is empty.
+    final titleDiscount = RegExp(r'%\s*(\d{1,3})(?:\s*[’\']?e)?(?:\s*(?:varan|kadar))?(?:\s*\+?\s*)?(?:\s*(?:ek|özel))?\s*(?:indirim|indirimli|avantaj)', caseSensitive: false).firstMatch(title);
     if (titleDiscount != null) return '%${titleDiscount.group(1)} İndirim';
+    final anyTitlePercent = RegExp(r'%\s*(\d{1,3})', caseSensitive: false).firstMatch(title);
+    if (anyTitlePercent != null && RegExp(r'indirim|avantaj', caseSensitive: false).hasMatch(title)) return '%${anyTitlePercent.group(1)} İndirim';
     final titleBonus = RegExp(r'(\d{1,3}(?:[.\s]\d{3})*|\d+)\s*TL\s*(?:bonus|puan|avantaj|chip.?para)', caseSensitive: false).allMatches(title).toList();
     if (titleBonus.isNotEmpty) return '${titleBonus.last.group(1)} TL Bonus';
     final titleInstallment = RegExp(r'(?<!\d)(\d{1,2})\s*(?:taksit|taksitli)', caseSensitive: false).firstMatch(title);
     if (titleInstallment != null) return '${titleInstallment.group(1)} Taksit';
-    final text = '$title $description';
     final discount = RegExp(r'%\s*(\d{1,3})\s*(?:indirim|indirimli|avantaj)', caseSensitive: false).firstMatch(text);
     if (discount != null) return '%${discount.group(1)} İndirim';
     final installment = RegExp(r'(?<!\d)(\d{1,2})\s*(?:taksit|taksitli)', caseSensitive: false).firstMatch(title);
     if (installment != null) return '${installment.group(1)} Taksit';
-    // Never treat a bare spending threshold (e.g. 3.500 TL harcama) as an advantage.
     if (RegExp(r'\b(?:ücretsiz|bedava)\b', caseSensitive: false).hasMatch(text)) return 'Ücretsiz';
     return null;
   }
