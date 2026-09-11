@@ -82,8 +82,6 @@ jobs:
         run: python3 scripts/repair-release-reference-ui.py
       - name: Stabilize reference bottom navigation and compile helper
         run: python3 scripts/repair-reference-bottom-and-compile.py
-      - name: Repair top-level Dart class boundaries
-        run: python3 scripts/repair-top-level-class-boundaries.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
