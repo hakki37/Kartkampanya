@@ -18,6 +18,7 @@ if 'io.supabase.flutter' not in manifest: raise SystemExit('OAuth verification f
 if 'android.intent.action.VIEW' not in manifest: raise SystemExit('OAuth verification failed: VIEW intent missing')
 if 'android.intent.category.BROWSABLE' not in manifest: raise SystemExit('OAuth verification failed: BROWSABLE category missing')
 if not re.search(r'<data[^>]*android:scheme="io\.supabase\.flutter"[^>]*android:host="login-callback"',manifest): raise SystemExit('OAuth verification failed: exact callback missing')
-activities=re.findall(r'<activity\\b[^>]*android:name="([^"]+)"',manifest); mains=[a for a in activities if a.endswith('.MainActivity') or a=='MainActivity']
+activities=re.findall(r'<activity\b[^>]*android:name="([^"]+)"',manifest)
+mains=[a for a in activities if a.endswith('.MainActivity') or a=='MainActivity']
 if len(mains)!=1: raise SystemExit(f'OAuth verification failed: expected exactly one MainActivity, found {len(mains)}')
 print('OAuth verification passed.')
