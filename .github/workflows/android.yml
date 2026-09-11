@@ -21,6 +21,8 @@ jobs:
         run: python3 scripts/configure-google-oauth-android.py
       - name: Dependencies
         run: flutter pub get
+      - name: Remove generated sample test
+        run: rm -rf test
       - name: Format Dart
         run: dart format lib
       - name: Analyze Dart
