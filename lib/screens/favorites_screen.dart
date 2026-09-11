@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/campaign_service.dart';
 import '../widgets/campaign_card.dart';
+import '../pages/campaign_detail_page.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -44,7 +45,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               campaign: campaigns[i],
               isFavorite: true,
               onFavoriteTap: () => _toggle(campaigns[i].id),
-              onTap: () => Navigator.pushNamed(context, '/campaign-detail', arguments: campaigns[i]),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CampaignDetailPage(campaign: campaigns[i]))),
             ),
           ),
   );
