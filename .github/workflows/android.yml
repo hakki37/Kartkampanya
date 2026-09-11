@@ -64,8 +64,6 @@ jobs:
         run: python3 scripts/repair-reference-bottom-and-compile.py
       - name: Finalize Google OAuth login implementation
         run: python3 scripts/lock-reference-login-v2.py
-      - name: Final reference catalog V3
-        run: python3 scripts/reference-catalog-v3.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
