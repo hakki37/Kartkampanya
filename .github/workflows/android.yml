@@ -82,6 +82,8 @@ jobs:
         run: python3 scripts/repair-release-reference-ui.py
       - name: Stabilize reference bottom navigation and compile helper
         run: python3 scripts/repair-reference-bottom-and-compile.py
+      - name: Finalize Google OAuth login implementation
+        run: python3 scripts/lock-reference-login-v2.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
