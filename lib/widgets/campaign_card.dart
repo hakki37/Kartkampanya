@@ -59,10 +59,7 @@ class CampaignCard extends StatelessWidget {
     final description = campaign.description;
     final text = '$title $description';
 
-    // Titles such as "%8'e varan ek indirim" and "%5 ek indirim" carry the benefit
-    // even when the database reward_percent field is empty.
-    final titleDiscount = RegExp(r'%\s*(\d{1,3})(?:\s*[’\']?e)?(?:\s*(?:varan|kadar))?(?:\s*\+?\s*)?(?:\s*(?:ek|özel))?\s*(?:indirim|indirimli|avantaj)', caseSensitive: false).firstMatch(title);
-    if (titleDiscount != null) return '%${titleDiscount.group(1)} İndirim';
+    // Percentage benefits can be written as "%8'e varan" or "%5" in the title.
     final anyTitlePercent = RegExp(r'%\s*(\d{1,3})', caseSensitive: false).firstMatch(title);
     if (anyTitlePercent != null && RegExp(r'indirim|avantaj', caseSensitive: false).hasMatch(title)) return '%${anyTitlePercent.group(1)} İndirim';
     final titleBonus = RegExp(r'(\d{1,3}(?:[.\s]\d{3})*|\d+)\s*TL\s*(?:bonus|puan|avantaj|chip.?para)', caseSensitive: false).allMatches(title).toList();
