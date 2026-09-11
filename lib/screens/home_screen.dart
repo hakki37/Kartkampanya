@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/card_service.dart';
 import '../widgets/campaign_content.dart';
-import '../widgets/quick_actions.dart';
-import 'favorites_screen.dart';
-import 'profile_screen.dart';
+import '../screens/favorites_screen.dart';
+import '../screens/profile_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final List<UserCard> cards;
@@ -46,10 +45,7 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
-            QuickActions(
-              onFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoritesScreen())),
-              onProfile: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
-            ),
+            const SizedBox(height: 5),
             Expanded(child: CampaignContent(cards: cards, mode: 'matched')),
           ],
         ),
