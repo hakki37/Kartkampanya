@@ -20,11 +20,73 @@ jobs:
       - name: Prepare Flutter project
         run: flutter create --platforms=android .
 
+      - name: Remove generated sample test
+        run: rm -f test/widget_test.dart
+
       - name: Configure Android OAuth callback
         run: python3 scripts/configure-google-oauth-android.py
 
       - name: Repair campaign data and card matching
         run: python3 scripts/fix-card-match-and-campaign-data.py
+
+      - name: Add Google OAuth login flow
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/main.dart')
+          s = p.read_text(encoding='utf-8')
+
+          if 'signInWithOAuth(OAuthProvider.google' not in s:
+              marker = '  Future<void> submit() async {'
+              oauth = '''  Future<void> signInWithGoogle() async {
+              setState(() {
+                busy = true;
+                error = null;
+              });
+
+              try {
+                await Supabase.instance.client.auth.signInWithOAuth(
+                  OAuthProvider.google,
+                  redirectTo: 'io.supabase.flutter://login-callback/',
+                  authScreenLaunchMode: LaunchMode.externalApplication,
+                );
+              } catch (e) {
+                if (mounted) setState(() => error = e.toString());
+              } finally {
+                if (mounted) setState(() => busy = false);
+              }
+            }
+
+'''
+              if marker not in s:
+                  raise SystemExit('submit marker not found')
+              s = s.replace(marker, oauth + marker, 1)
+
+          if "'Google ile Giriş Yap'" not in s:
+              marker = "                TextButton(\n                  onPressed: busy"
+              google = '''                const SizedBox(height: 8),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: busy ? null : signInWithGoogle,
+                    icon: const Icon(Icons.login),
+                    label: const Text('Google ile Giriş Yap'),
+                  ),
+                ),
+
+'''
+              if marker not in s:
+                  raise SystemExit('login toggle marker not found')
+              s = s.replace(marker, google + marker, 1)
+
+          s = s.replace(
+              '    anonKey: AppConfig.supabasePublishableKey,',
+              '    publishableKey: AppConfig.supabasePublishableKey,',
+          )
+          p.write_text(s, encoding='utf-8')
+          print('Google OAuth login flow applied')
+          PY
 
       - name: Dependencies
         run: flutter pub get
@@ -34,6 +96,34 @@ jobs:
 
       - name: Analyze Dart
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Verify Google OAuth flow
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          main = Path('lib/main.dart').read_text(encoding='utf-8')
+          manifest = Path('android/app/src/main/AndroidManifest.xml').read_text(encoding='utf-8')
+          required = [
+              'signInWithOAuth(OAuthProvider.google',
+              "redirectTo: 'io.supabase.flutter://login-callback/'",
+              'authScreenLaunchMode: LaunchMode.externalApplication',
+              "'Google ile Giriş Yap'",
+              'onAuthStateChange',
+              'currentSession',
+          ]
+          for item in required:
+              if item not in main:
+                  raise SystemExit(f'Missing Google OAuth requirement: {item}')
+          for item in [
+              'io.supabase.flutter',
+              'login-callback',
+              'android.intent.action.VIEW',
+              'android.intent.category.BROWSABLE',
+          ]:
+              if item not in manifest:
+                  raise SystemExit(f'Missing Android OAuth callback requirement: {item}')
+          print('Google OAuth flow verified')
+          PY
 
       - name: Ensure internet permission
         run: |
