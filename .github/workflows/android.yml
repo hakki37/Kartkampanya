@@ -27,32 +27,6 @@ jobs:
         run: dart format lib
       - name: Analyze Dart
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
-      - name: Ensure internet permission
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('android/app/src/main/AndroidManifest.xml')
-          s=p.read_text(encoding='utf-8')
-          permission='    <uses-permission android:name="android.permission.INTERNET" />\n'
-          if 'android.permission.INTERNET' not in s:
-              s=s.replace('    <application',permission+'    <application',1)
-              p.write_text(s,encoding='utf-8')
-          PY
-      - name: Finalize OAuth manifest
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import xml.etree.ElementTree as ET
-          path=Path('android/app/src/main/AndroidManifest.xml'); ns='http://schemas.android.com/apk/res/android'; ET.register_namespace('android',ns)
-          root=ET.parse(path).getroot(); app=next((e for e in root if e.tag=='application'),None)
-          if app is None: raise SystemExit('application not found')
-          name=f'{{{ns}}}name'; exported=f'{{{ns}}}exported'; mains=[e for e in list(app) if e.tag=='activity' and e.get(name,'').endswith('MainActivity')]
-          if len(mains)!=1: raise SystemExit(f'Expected exactly one MainActivity, found {len(mains)}')
-          main=mains[0]; main.set(exported,'true')
-          for child in list(main):
-              if child.tag=='intent-filter' and any(d.tag=='data' and d.get(f'{{{ns}}}scheme')=='io.supabase.flutter' and d.get(f'{{{ns}}}host')=='login-callback' for d in child): main.remove(child)
-          filt=ET.SubElement(main,'intent-filter'); ET.SubElement(filt,'action',{f'{{{ns}}}name':'android.intent.action.VIEW'}); ET.SubElement(filt,'category',{f'{{{ns}}}name':'android.intent.category.DEFAULT'}); ET.SubElement(filt,'category',{f'{{{ns}}}name':'android.intent.category.BROWSABLE'}); ET.SubElement(filt,'data',{f'{{{ns}}}scheme':'io.supabase.flutter',f'{{{ns}}}host':'login-callback'}); ET.ElementTree(root).write(path,encoding='utf-8',xml_declaration=True)
-          PY
       - name: Verify Google OAuth flow
         run: python3 scripts/verify-oauth-flow.py
       - name: Build APK
