@@ -8,11 +8,53 @@ class CampaignCard extends StatelessWidget {
   final VoidCallback? onFavoriteTap;
   const CampaignCard({super.key, required this.campaign, this.isFavorite = false, this.onTap, this.onFavoriteTap});
 
+  String _formatAmount(num value) {
+    final rounded = value.round();
+    final s = rounded.toString();
+    final parts = <String>[];
+    for (var i = s.length; i > 0; i -= 3) {
+      final start = i - 3 < 0 ? 0 : i - 3;
+      parts.insert(0, s.substring(start, i));
+    }
+    return parts.join('.');
+  }
+
   String? get estimatedAdvantage {
-    final text = '${campaign.title} ${campaign.description}';
+    final data = campaign.data;
+
+    // Prefer structured reward data from Supabase. This prevents words such as
+    // "taksitli" buried in the conditions from overriding the real reward.
+    final rewardType = '${data['reward_type'] ?? ''}'.trim().toLowerCase();
+    final rewardPercent = num.tryParse('${data['reward_percent'] ?? ''}');
+    final rewardAmount = num.tryParse('${data['max_reward'] ?? data['reward_amount'] ?? ''}');
+    if (rewardPercent != null && rewardPercent > 0) return '%${rewardPercent % 1 == 0 ? rewardPercent.toInt() : rewardPercent} İndirim';
+    if (rewardAmount != null && rewardAmount > 0) {
+      if (rewardType.contains('taksit')) return '${rewardAmount.toInt()} Taksit';
+      if (rewardType.contains('percent')) return '%${rewardAmount.toInt()} İndirim';
+      return '${_formatAmount(rewardAmount)} ${rewardType.isEmpty || rewardType == 'tl' ? 'TL Avantaj' : rewardType == 'bonus' ? 'TL Bonus' : rewardType}';
+    }
+
+    final title = campaign.title;
+    final description = campaign.description;
+
+    // Title is authoritative for the headline offer. Only fall back to the
+    // description when the title itself does not expose an offer.
+    final titleDiscount = RegExp(r'%\s*(\d{1,3})\s*(?:indirim|indirimli|avantaj|bonus)', caseSensitive: false).firstMatch(title);
+    if (titleDiscount != null) return '%${titleDiscount.group(1)} İndirim';
+
+    final titleBonus = RegExp(r'(\d{1,3}(?:[.\s]\d{3})*|\d+)\s*TL\s*(?:bonus|puan|avantaj)', caseSensitive: false).allMatches(title).toList();
+    if (titleBonus.isNotEmpty) {
+      final value = titleBonus.last.group(1)!;
+      return '$value TL Bonus';
+    }
+
+    final titleInstallment = RegExp(r'(?<!\d)(\d{1,2})\s*(?:taksit|taksitli)', caseSensitive: false).firstMatch(title);
+    if (titleInstallment != null) return '${titleInstallment.group(1)} Taksit';
+
+    final text = '$title $description';
     final discount = RegExp(r'%\s*(\d{1,3})\s*(?:indirim|indirimli|avantaj)', caseSensitive: false).firstMatch(text);
     if (discount != null) return '%${discount.group(1)} İndirim';
-    final installment = RegExp(r'(?<!\d)(\d{1,2})\s*(?:taksit|taksitli)', caseSensitive: false).firstMatch(text);
+    final installment = RegExp(r'(?<!\d)(\d{1,2})\s*(?:taksit|taksitli)', caseSensitive: false).firstMatch(title);
     if (installment != null) return '${installment.group(1)} Taksit';
     final amount = RegExp(r'(\d{1,3}(?:[.\s]\d{3})*|\d+)\s*TL\b', caseSensitive: false).firstMatch(text);
     if (amount != null) return '${amount.group(1)} TL Avantaj';
