@@ -91,6 +91,9 @@ jobs:
       - name: Dependencies
         run: flutter pub get
 
+      - name: Apply Dart cleanup fixes
+        run: dart fix --apply lib/main.dart
+
       - name: Format Dart
         run: dart format lib/main.dart
 
