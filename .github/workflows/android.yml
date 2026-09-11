@@ -33,8 +33,6 @@ jobs:
         run: python3 scripts/repair-campaign-card-syntax.py
       - name: Restore reference login and Google OAuth
         run: python3 scripts/lock-reference-login-v2.py
-      - name: Repair login/app class boundary
-        run: python3 scripts/repair-login-app-boundary.py
       - name: Repair duplicate login state
         run: python3 scripts/repair-duplicate-login-state.py
       - name: Apply exact reference campaign card UI
@@ -80,9 +78,7 @@ jobs:
               s = s.replace(marker, profile + marker, 1)
           p.write_text(s, encoding='utf-8')
           PY
-      - name: Repair login parentheses
-        run: python3 scripts/fix-login-parentheses.py
-      - name: Restore tabless card selectors
+      - name: Restore tabless card selectors and light reference theme
         run: python3 scripts/repair-release-reference-ui.py
       - name: Stabilize reference bottom navigation and compile helper
         run: python3 scripts/repair-reference-bottom-and-compile.py
