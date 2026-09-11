@@ -1,7 +1,7 @@
 name: kart_kampanya
 description: Kart kampanyalarını bul, kartlarını yönet ve avantajları karşılaştır.
 publish_to: "none"
-version: 0.9.0+28
+version: 1.0.0+29
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
