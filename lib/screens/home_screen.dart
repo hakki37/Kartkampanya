@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/card_service.dart';
 import '../widgets/campaign_content.dart';
+import '../widgets/quick_actions.dart';
+import 'favorites_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final List<UserCard> cards;
@@ -10,14 +13,27 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) => SafeArea(
         child: Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(18, 18, 18, 4),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Kampanyaları Keşfet',
-                  style: TextStyle(fontSize: 27, fontWeight: FontWeight.w900, color: Color(0xFF211D2D)),
-                ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 4),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Kampanyaları Keşfet',
+                      style: TextStyle(fontSize: 27, fontWeight: FontWeight.w900, color: Color(0xFF211D2D)),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Favorilerim',
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoritesScreen())),
+                    icon: const Icon(Icons.favorite_border, color: Color(0xFF6D3DF5)),
+                  ),
+                  IconButton(
+                    tooltip: 'Profilim',
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+                    icon: const Icon(Icons.person_outline, color: Color(0xFF6D3DF5)),
+                  ),
+                ],
               ),
             ),
             const Padding(
@@ -30,7 +46,10 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 5),
+            QuickActions(
+              onFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoritesScreen())),
+              onProfile: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+            ),
             Expanded(child: CampaignContent(cards: cards, mode: 'matched')),
           ],
         ),
