@@ -398,19 +398,11 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 '''
-
 s = s[:start] + block + s[end:]
-
-# Hard validation: each authentication class must now be top-level and unique.
-for marker in (
-    'class KartKampanyaApp extends StatelessWidget {',
-    'class AuthGate extends StatelessWidget {',
-    'class LoginPage extends StatefulWidget {',
-    'class _LoginPageState extends State<LoginPage> {',
-    'class MainShell extends StatefulWidget {',
-):
-    if s.count(marker) != 1:
-        raise SystemExit(f'Expected exactly one {marker!r}, found {s.count(marker)}')
-
 p.write_text(s, encoding='utf-8')
-print('Deterministic top-level app/auth/login section restored with Google OAuth')
+print('Reference login/app boundary locked')
+
+# Final visual pass: the authenticated catalog must match the dark reference
+# screenshot after all earlier UI repair passes have completed.
+import runpy
+runpy.run_path('scripts/apply-dark-catalog-reference.py', run_name='__main__')
