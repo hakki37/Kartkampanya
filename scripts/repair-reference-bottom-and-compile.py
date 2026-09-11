@@ -1,4 +1,5 @@
 from pathlib import Path
+import runpy
 
 p = Path('lib/main.dart')
 s = p.read_text(encoding='utf-8')
@@ -140,4 +141,7 @@ if '_BottomItem extends StatelessWidget' not in s:
     s = s.replace(marker, item + marker, 1)
 
 p.write_text(s, encoding='utf-8')
+
+# This script runs late in the workflow, so apply the final matching/data repair now.
+runpy.run_path('scripts/fix-card-match-and-campaign-data.py', run_name='__main__')
 print('Reference bottom navigation and compile helper repaired')
