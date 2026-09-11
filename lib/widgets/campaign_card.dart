@@ -19,6 +19,59 @@ class CampaignCard extends StatelessWidget {
     return parts.join('.');
   }
 
+  String _cleanCardDescription(String value) {
+    var text = value.trim();
+    if (text.isEmpty) return '';
+
+    // Some bank pages put the entire site navigation into the scraped description.
+    const markers = [
+      'Ara Faiz ve Ücretler',
+      'KART İŞLEMLERİ',
+      'Kartlarımız Kampanyalar',
+      'Merak Ettikleriniz Kampüs Modu Menü',
+      'Anasayfa ➜ Kampanyalar',
+      'AXESS JÜZDAN FREE',
+      'Başvuru Maximum Dünyası Geri Maximum Dünyası',
+      'Başvuru Maximum Dünyası Maximum',
+      'İLGİNİZİ ÇEKEBİLECEK',
+      'VakıfBank Web Siteleri',
+      'Hızlı Linkler',
+      'Sıkça Sorulan Sorular',
+      'Çerez Tercihleri',
+      'Site Haritası',
+    ];
+    for (final marker in markers) {
+      final i = text.toLowerCase().indexOf(marker.toLowerCase());
+      if (i >= 0) text = text.substring(0, i).trim();
+    }
+
+    // Remove common breadcrumb/navigation prefixes.
+    text = text.replaceFirst(RegExp(r'^(?:Ana Sayfa\s*[>|➜-]\s*)+', caseSensitive: false), '').trim();
+    text = text.replaceAll(RegExp(r'\s+'), ' ');
+
+    // If what remains is still clearly navigation, don't show it to the user.
+    final low = text.toLowerCase();
+    const navWords = [
+      'anasayfa', 'kampanyalar', 'kartlarımız', 'menü', 'merak ettikleriniz',
+      'faiz ve ücretler', 'kart işlemleri', 'başvuru', 'maximum dünyası',
+      'axess ile tanışın', 'jüzdan free', 'ticari kartlar',
+    ];
+    final hits = navWords.where(low.contains).length;
+    if (text.length < 30 || hits >= 3) return '';
+
+    // De-duplicate repeated sentences caused by scraper output.
+    final parts = text.split(RegExp(r'(?<=[.!?])\s+')).map((e) => e.trim()).where((e) => e.length >= 15).toList();
+    final seen = <String>{};
+    final unique = <String>[];
+    for (final part in parts) {
+      final key = part.toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+      if (seen.add(key)) unique.add(part);
+      if (unique.join(' ').length >= 320) break;
+    }
+    text = unique.isEmpty ? text : unique.join(' ');
+    return text.length > 320 ? '${text.substring(0, 320).trim()}…' : text;
+  }
+
   String? get estimatedAdvantage {
     final data = campaign.data;
     final rewardType = '${data['reward_type'] ?? ''}'.trim().toLowerCase();
@@ -55,6 +108,7 @@ class CampaignCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final advantage = estimatedAdvantage;
+    final description = _cleanCardDescription(campaign.description);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: Color(0xFFE5DFEB))),
@@ -76,7 +130,7 @@ class CampaignCard extends StatelessWidget {
               ]),
             ]),
             const SizedBox(height: 8),
-            Text(campaign.description.isEmpty ? 'Kampanya detaylarını görmek için dokun.' : campaign.description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF6F687A), fontSize: 12.5, height: 1.35)),
+            Text(description.isEmpty ? 'Kampanya detaylarını görmek için dokun.' : description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF6F687A), fontSize: 12.5, height: 1.35)),
             const SizedBox(height: 10),
             Wrap(spacing: 7, runSpacing: 6, children: [
               _Tag(Icons.local_offer_outlined, campaign.category),
