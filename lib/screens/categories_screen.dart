@@ -26,7 +26,6 @@ class CategoriesScreen extends StatelessWidget {
     _CategoryItem('Fatura & Abonelik', Icons.receipt_long_outlined, Color(0xFF00897B)),
     _CategoryItem('Kitap & Kırtasiye', Icons.menu_book_outlined, Color(0xFF5E35B1)),
     _CategoryItem('Hizmet', Icons.handyman_outlined, Color(0xFF546E7A)),
-    _CategoryItem('Otomotiv', Icons.directions_car_outlined, Color(0xFF1565C0)),
     _CategoryItem('Finans & Sigorta', Icons.account_balance_outlined, Color(0xFF2E7D32)),
     _CategoryItem('Evcil Hayvan', Icons.pets_outlined, Color(0xFF8D6E63)),
     _CategoryItem('Diğer', Icons.more_horiz, Color(0xFF616161)),
