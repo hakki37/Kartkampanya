@@ -1,4 +1,4 @@
-name: Android APK - REFERENCE UI
+name: Android APK - CLEAN CATALOG
 
 on:
   push:
@@ -19,114 +19,37 @@ jobs:
         run: flutter create --platforms=android .
       - name: Configure Google OAuth Android callback
         run: python3 scripts/configure-google-oauth-android.py
-      - name: Apply clean final catalog UI
-        run: python3 scripts/apply-final-clean-ui.py
-      - name: Ensure campaign detail anchor
-        run: python3 scripts/ensure-campaign-detail-anchor.py
-      - name: Repair final catalog UI syntax
-        run: python3 scripts/repair-final-clean-ui.py
-      - name: Restore card add screen
-        run: python3 scripts/fix-v19-mycards-selection.py
-      - name: Restore campaign detail and fix widget test
-        run: python3 scripts/repair-campaign-detail-and-test.py
-      - name: Repair campaign card Dart syntax
-        run: python3 scripts/repair-campaign-card-syntax.py
-      - name: Restore reference login and Google OAuth
-        run: python3 scripts/lock-reference-login-v2.py
-      - name: Repair duplicate login state
-        run: python3 scripts/repair-duplicate-login-state.py
-      - name: Apply exact reference campaign card UI
-        run: python3 scripts/apply-reference-campaign-card.py
-      - name: Repair generated UI symbols
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('lib/main.dart')
-          s = p.read_text(encoding='utf-8')
-          if 'class ProfilePage extends StatelessWidget' not in s:
-              marker = 'class CategoriesPage extends StatelessWidget {'
-              profile = '''class ProfilePage extends StatelessWidget {
-            const ProfilePage({super.key});
-            @override
-            Widget build(BuildContext context) {
-              final user = Supabase.instance.client.auth.currentUser;
-              return Scaffold(
-                backgroundColor: const Color(0xFFF8F7FC),
-                appBar: AppBar(title: const Text('Profil', style: TextStyle(fontWeight: FontWeight.w900))),
-                body: ListView(padding: const EdgeInsets.all(16), children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: const Color(0xFFE3DDF0))),
-                    child: Row(children: [
-                      const CircleAvatar(radius: 28, backgroundColor: Color(0xFFEDE5FF), child: Icon(Icons.person_rounded, color: Color(0xFF6D3DF5), size: 30)),
-                      const SizedBox(width: 14),
-                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text('Kart Kampanya', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-                        Text(user?.email ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF6D6677))),
-                      ])),
-                    ]),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(height: 50, child: OutlinedButton.icon(onPressed: () async => Supabase.instance.client.auth.signOut(), icon: const Icon(Icons.logout_rounded), label: const Text('Çıkış Yap', style: TextStyle(fontWeight: FontWeight.w800)))),
-                ]),
-              );
-            }
-          }
-
-          '''
-              if marker not in s: raise SystemExit('CategoriesPage marker not found')
-              s = s.replace(marker, profile + marker, 1)
-          p.write_text(s, encoding='utf-8')
-          PY
-      - name: Restore tabless card selectors and light reference theme
-        run: python3 scripts/repair-release-reference-ui.py
-      - name: Stabilize reference bottom navigation and compile helper
-        run: python3 scripts/repair-reference-bottom-and-compile.py
-      - name: Finalize Google OAuth login implementation
-        run: python3 scripts/lock-reference-login-v2.py
       - name: Dependencies
         run: flutter pub get
       - name: Format Dart
-        run: dart format lib/main.dart
+        run: dart format lib
       - name: Analyze Dart
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - name: Ensure internet permission
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p = Path('android/app/src/main/AndroidManifest.xml')
-          s = p.read_text(encoding='utf-8')
-          permission = '    <uses-permission android:name="android.permission.INTERNET" />\n'
+          p=Path('android/app/src/main/AndroidManifest.xml')
+          s=p.read_text(encoding='utf-8')
+          permission='    <uses-permission android:name="android.permission.INTERNET" />\n'
           if 'android.permission.INTERNET' not in s:
-              s = s.replace('    <application', permission + '    <application', 1)
-              p.write_text(s, encoding='utf-8')
+              s=s.replace('    <application',permission+'    <application',1)
+              p.write_text(s,encoding='utf-8')
           PY
       - name: Finalize OAuth manifest
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import xml.etree.ElementTree as ET
-          path = Path('android/app/src/main/AndroidManifest.xml')
-          ns = 'http://schemas.android.com/apk/res/android'
-          ET.register_namespace('android', ns)
-          root = ET.parse(path).getroot()
-          app = next((e for e in root if e.tag == 'application'), None)
+          path=Path('android/app/src/main/AndroidManifest.xml'); ns='http://schemas.android.com/apk/res/android'; ET.register_namespace('android',ns)
+          root=ET.parse(path).getroot(); app=next((e for e in root if e.tag=='application'),None)
           if app is None: raise SystemExit('application not found')
-          name = f'{{{ns}}}name'
-          exported = f'{{{ns}}}exported'
-          mains = [e for e in list(app) if e.tag == 'activity' and e.get(name, '').endswith('MainActivity')]
-          if len(mains) != 1: raise SystemExit(f'Expected exactly one MainActivity, found {len(mains)}')
-          main = mains[0]
+          name=f'{{{ns}}}name'; exported=f'{{{ns}}}exported'; mains=[e for e in list(app) if e.tag=='activity' and e.get(name,'').endswith('MainActivity')]
+          if len(mains)!=1: raise SystemExit(f'Expected exactly one MainActivity, found {len(mains)}')
+          main=mains[0]; main.set(exported,'true')
           for child in list(main):
-              if child.tag == 'intent-filter' and any(d.tag == 'data' and d.get(f'{{{ns}}}scheme') == 'io.supabase.flutter' and d.get(f'{{{ns}}}host') == 'login-callback' for d in child):
-                  main.remove(child)
-          main.set(exported, 'true')
-          filt = ET.SubElement(main, 'intent-filter')
-          ET.SubElement(filt, 'action', {f'{{{ns}}}name':'android.intent.action.VIEW'})
-          ET.SubElement(filt, 'category', {f'{{{ns}}}name':'android.intent.category.DEFAULT'})
-          ET.SubElement(filt, 'category', {f'{{{ns}}}name':'android.intent.category.BROWSABLE'})
-          ET.SubElement(filt, 'data', {f'{{{ns}}}scheme':'io.supabase.flutter', f'{{{ns}}}host':'login-callback'})
-          ET.ElementTree(root).write(path, encoding='utf-8', xml_declaration=True)
+              if child.tag=='intent-filter' and any(d.tag=='data' and d.get(f'{{{ns}}}scheme')=='io.supabase.flutter' and d.get(f'{{{ns}}}host')=='login-callback' for d in child): main.remove(child)
+          filt=ET.SubElement(main,'intent-filter'); ET.SubElement(filt,'action',{f'{{{ns}}}name':'android.intent.action.VIEW'}); ET.SubElement(filt,'category',{f'{{{ns}}}name':'android.intent.category.DEFAULT'}); ET.SubElement(filt,'category',{f'{{{ns}}}name':'android.intent.category.BROWSABLE'}); ET.SubElement(filt,'data',{f'{{{ns}}}scheme':'io.supabase.flutter',f'{{{ns}}}host':'login-callback'}); ET.ElementTree(root).write(path,encoding='utf-8',xml_declaration=True)
           PY
       - name: Verify Google OAuth flow
         run: python3 scripts/verify-oauth-flow.py
@@ -137,5 +60,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: kart-kampanya-reference-apk
+          name: kart-kampanya-clean-catalog-apk
           path: build/app/outputs/flutter-apk/app-release.apk
