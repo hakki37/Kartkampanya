@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'card_service.dart';
 
 String normalizeCampaignText(String v) => _cleanText(v).toLowerCase().trim()
