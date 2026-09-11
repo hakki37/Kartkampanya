@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase.dart';
 import 'card_service.dart';
 
 String normalizeCampaignText(String v) => _cleanText(v).toLowerCase().trim()
@@ -27,36 +27,54 @@ String _cleanText(String value) {
 
 String _bestDescription(Map<String, dynamic> m) {
   final title = _cleanText('${m['title'] ?? ''}');
-  final candidates = [
-    '${m['description'] ?? ''}',
-    '${m['conditions'] ?? ''}',
-    '${m['terms'] ?? ''}',
-  ].map(_cleanText).where((x) => x.isNotEmpty).toList();
-  const junkPhrases = [
-    'başvuru işlemleri ayrıcalıklar', 'platinum dünyası', 'milplus.com.tr', 'çerez politikası',
-    'gizlilik politikası', 'internet şubesi', 'bankkart mobil uygulaması', 'sitemize erişimde geçici bir hata',
-    'tarayıcınız desteklenmiyor', 'aradığınız kriterlerde bir kampanya bulunamamıştır',
-  ];
-  for (var text in candidates) {
-    var low = normalizeCampaignText(text);
-    if (low.contains('ana sayfa > kampanyalar >')) {
-      final marker = normalizeCampaignText(title);
-      final idx = low.indexOf(marker);
-      if (idx >= 0) text = text.substring(idx);
+  var text = _cleanText('${m['description'] ?? ''}');
+  if (text.isEmpty) return '';
+
+  final normalizedText = normalizeCampaignText(text);
+  final normalizedTitle = normalizeCampaignText(title);
+  if (normalizedTitle.isNotEmpty) {
+    final titleIndex = normalizedText.indexOf(normalizedTitle);
+    if (titleIndex >= 0) {
+      text = text.substring(titleIndex + title.length).trim();
     }
-    final cutMarkers = [
-      'İlginizi Çekebilecek Kampanyalar', 'VakıfBank Web Siteleri', 'Facebook Twitter instagram Youtube',
-      'Hızlı Linkler', 'Sıkça Sorulan Sorular',
-    ];
-    for (final marker in cutMarkers) {
-      final idx = normalizeCampaignText(text).indexOf(normalizeCampaignText(marker));
-      if (idx > 0) text = text.substring(0, idx).trim();
-    }
-    text = _cleanText(text);
-    low = normalizeCampaignText(text);
-    if (text.isNotEmpty && !junkPhrases.any(low.contains) && text.length >= 25) return text;
   }
-  return '';
+
+  text = text.replaceFirst(RegExp(r'^\s*(?:Ana Sayfa\s*>\s*Kampanyalar\s*>\s*)+', caseSensitive: false), '').trim();
+  if (normalizedTitle.isNotEmpty) {
+    text = text.replaceFirst(RegExp('^${RegExp.escape(title)}\\s*', caseSensitive: false), '').trim();
+  }
+
+  const cutMarkers = [
+    'İlginizi Çekebilecek Kampanyalar',
+    'VakıfBank Web Siteleri',
+    'Facebook Twitter instagram Youtube',
+    'Hızlı Linkler',
+    'Sıkça Sorulan Sorular',
+    'Çerez Tercihleri',
+    'Bizi Takip Edin:',
+  ];
+  for (final marker in cutMarkers) {
+    final idx = normalizeCampaignText(text).indexOf(normalizeCampaignText(marker));
+    if (idx > 0) text = text.substring(0, idx).trim();
+  }
+
+  text = _cleanText(text);
+  final low = normalizeCampaignText(text);
+  const junkPhrases = [
+    'başvuru işlemleri ayrıcalıklar',
+    'platinum dünyası',
+    'milplus.com.tr',
+    'çerez politikası',
+    'gizlilik politikası',
+    'internet şubesi',
+    'bankkart mobil uygulaması',
+    'sitemize erişimde geçici bir hata',
+    'tarayıcınız desteklenmiyor',
+    'aradığınız kriterlerde bir kampanya bulunamamıştır',
+    'bu kategoride şu an için bir kampanyamız bulunmamaktadır',
+  ];
+  if (text.length < 25 || junkPhrases.any(low.contains)) return '';
+  return text;
 }
 
 class Campaign {
@@ -65,7 +83,7 @@ class Campaign {
   String get id => '${data['id'] ?? data['source_url'] ?? ''}';
   String get brand => _cleanText('${data['merchant'] ?? data['brand'] ?? data['bank_name'] ?? 'Kampanya'}');
   String get title => _cleanText('${data['title'] ?? 'Yeni Kampanya'}');
-  String get description => _cleanText('${data['_clean_description'] ?? data['description'] ?? data['conditions'] ?? ''}');
+  String get description => _cleanText('${data['_clean_description'] ?? data['description'] ?? ''}');
   String get category => _cleanText('${data['category'] ?? 'Diğer Kampanyalar'}');
   String get bankName => _cleanText('${data['bank_name'] ?? data['bank'] ?? ''}');
   String get cardName => _cleanText('${data['card_name'] ?? ''}');
@@ -164,15 +182,13 @@ class CampaignService {
       if ('${m['category'] ?? ''}'.trim().isEmpty && catNames[cid] != null) m['category'] = catNames[cid];
       m['title'] = _cleanText('${m['title'] ?? ''}');
       m['merchant'] = _cleanText('${m['merchant'] ?? ''}');
-      m['source_url'] = '${m['source_url'] ?? m['detail_url'] ?? m['url'] ?? ''}'.trim();
+      m['source_url'] = '${m['source_url'] ?? ''}'.trim();
       m['description'] = _cleanText('${m['description'] ?? ''}');
-      m['conditions'] = _cleanText('${m['conditions'] ?? ''}');
-      m['terms'] = _cleanText('${m['terms'] ?? ''}');
       m['_clean_description'] = _bestDescription(m);
       if (!_real(m)) continue;
       final id = '${m['id'] ?? ''}';
       m['_rules'] = rules.where((x) => '${x['campaign_id'] ?? ''}' == id).map(Map<String, dynamic>.from).toList();
-      final blob = normalizeCampaignText([m['title'], m['merchant'], m['description'], m['conditions'], m['terms']].where((x) => x != null).join(' '));
+      final blob = normalizeCampaignText([m['title'], m['merchant'], m['description']].where((x) => x != null).join(' '));
       if ('${m['card_name'] ?? ''}'.trim().isEmpty) {
         const known = {'world': 'World', 'axess': 'Axess', 'bonus': 'Bonus', 'maximum': 'Maximum', 'paraf': 'Paraf', 'cardfinans': 'CardFinans', 'bankkart': 'Bankkart', 'wings': 'Wings', 'free': 'Free', 'advantage': 'Advantage'};
         for (final e in known.entries) { if (blob.contains(e.key)) { m['card_name'] = e.value; break; } }
@@ -196,7 +212,7 @@ class CampaignService {
     const blocked = [
       'kvkk', 'aydinlatma metni', 'cerez politikasi', 'gizlilik politikasi', 'sifre belirleme',
       'internet alisveris yetkisi', 'visa tek tikla ode', 'test kampany', 'tarayiciniz desteklenmiyor',
-      'sunucuda gecici bir hata', 'kampanyalar | axess', 'kampanyalar | kampanyalar', 'kampanyalar',
+      'sunucuda gecici bir hata', 'kampanyalar | axess', 'kampanyalar | kampanyalar',
     ];
     if (blocked.any(t.contains)) return false;
     const genericTitles = [
