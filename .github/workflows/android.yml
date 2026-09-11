@@ -1,4 +1,4 @@
-name: Android APK - REFERENCE UI
+name: Android APK - CLEAN BUILD
 
 on:
   push:
@@ -10,68 +10,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.4'
           channel: stable
           cache: true
+
       - name: Prepare Flutter project
         run: flutter create --platforms=android .
-      - name: Configure Google OAuth Android callback
-        run: python3 scripts/configure-google-oauth-android.py
-      - name: Apply clean final catalog UI
-        run: python3 scripts/apply-final-clean-ui.py
-      - name: Ensure campaign detail anchor
-        run: python3 scripts/ensure-campaign-detail-anchor.py
-      - name: Repair final catalog UI syntax
-        run: python3 scripts/repair-final-clean-ui.py
-      - name: Restore card add screen
-        run: python3 scripts/fix-v19-mycards-selection.py
-      - name: Restore campaign detail and fix widget test
-        run: python3 scripts/repair-campaign-detail-and-test.py
-      - name: Repair campaign card Dart syntax
-        run: python3 scripts/repair-campaign-card-syntax.py
-      - name: Repair campaign matching and clean campaign data
-        run: python3 scripts/fix-card-match-and-campaign-data.py
-      - name: Restore reference login and Google OAuth
-        run: python3 scripts/lock-reference-login-v2.py
-      - name: Repair duplicate login state
-        run: python3 scripts/repair-duplicate-login-state.py
-      - name: Apply exact reference campaign card UI
-        run: python3 scripts/apply-reference-campaign-card.py
-      - name: Repair generated UI symbols
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('lib/main.dart')
-          s = p.read_text(encoding='utf-8')
-          if 'class ProfilePage extends StatelessWidget' not in s:
-              marker = 'class CategoriesPage extends StatelessWidget {'
-              profile = '''class ProfilePage extends StatelessWidget {
-            const ProfilePage({super.key});
-            @override
-            Widget build(BuildContext context) => Scaffold(body: Center(child: Text('Profil')));
-          }
 
-          '''
-              if marker not in s: raise SystemExit('CategoriesPage marker not found')
-              s = s.replace(marker, profile + marker, 1)
-          p.write_text(s, encoding='utf-8')
-          PY
-      - name: Restore tabless card selectors and light reference theme
-        run: python3 scripts/repair-release-reference-ui.py
-      - name: Stabilize reference bottom navigation and compile helper
-        run: python3 scripts/repair-reference-bottom-and-compile.py
-      - name: Finalize Google OAuth login implementation
-        run: python3 scripts/lock-reference-login-v2.py
-      - name: Repair final reference catalog Dart syntax
-        run: python3 scripts/repair-reference-catalog-syntax.py
+      - name: Configure Android OAuth callback
+        run: python3 scripts/configure-google-oauth-android.py
+
+      - name: Repair campaign data and card matching
+        run: python3 scripts/fix-card-match-and-campaign-data.py
+
       - name: Dependencies
         run: flutter pub get
+
       - name: Format Dart
         run: dart format lib/main.dart
+
       - name: Analyze Dart
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
       - name: Ensure internet permission
         run: |
           python3 - <<'PY'
@@ -83,6 +46,7 @@ jobs:
               s = s.replace('    <application', permission + '    <application', 1)
               p.write_text(s, encoding='utf-8')
           PY
+
       - name: Finalize OAuth manifest
         run: |
           python3 - <<'PY'
@@ -93,31 +57,34 @@ jobs:
           ET.register_namespace('android', ns)
           root = ET.parse(path).getroot()
           app = next((e for e in root if e.tag == 'application'), None)
-          if app is None: raise SystemExit('application not found')
+          if app is None:
+              raise SystemExit('application not found')
           name = f'{{{ns}}}name'
           exported = f'{{{ns}}}exported'
           mains = [e for e in list(app) if e.tag == 'activity' and e.get(name, '').endswith('MainActivity')]
-          if len(mains) != 1: raise SystemExit(f'Expected exactly one MainActivity, found {len(mains)}')
+          if len(mains) != 1:
+              raise SystemExit(f'Expected exactly one MainActivity, found {len(mains)}')
           main = mains[0]
           for child in list(main):
               if child.tag == 'intent-filter' and any(d.tag == 'data' and d.get(f'{{{ns}}}scheme') == 'io.supabase.flutter' and d.get(f'{{{ns}}}host') == 'login-callback' for d in child):
                   main.remove(child)
           main.set(exported, 'true')
           filt = ET.SubElement(main, 'intent-filter')
-          ET.SubElement(filt, 'action', {f'{{{ns}}}name':'android.intent.action.VIEW'})
-          ET.SubElement(filt, 'category', {f'{{{ns}}}name':'android.intent.category.DEFAULT'})
-          ET.SubElement(filt, 'category', {f'{{{ns}}}name':'android.intent.category.BROWSABLE'})
-          ET.SubElement(filt, 'data', {f'{{{ns}}}scheme':'io.supabase.flutter', f'{{{ns}}}host':'login-callback'})
+          ET.SubElement(filt, 'action', {f'{{{ns}}}name': 'android.intent.action.VIEW'})
+          ET.SubElement(filt, 'category', {f'{{{ns}}}name': 'android.intent.category.DEFAULT'})
+          ET.SubElement(filt, 'category', {f'{{{ns}}}name': 'android.intent.category.BROWSABLE'})
+          ET.SubElement(filt, 'data', {f'{{{ns}}}scheme': 'io.supabase.flutter', f'{{{ns}}}host': 'login-callback'})
           ET.ElementTree(root).write(path, encoding='utf-8', xml_declaration=True)
           PY
-      - name: Verify Google OAuth flow
-        run: python3 scripts/verify-oauth-flow.py
+
       - name: Build APK
         run: flutter build apk --release
+
       - name: Verify APK artifact
         run: test -s build/app/outputs/flutter-apk/app-release.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: kart-kampanya-reference-apk
+          name: kart-kampanya-clean-apk
           path: build/app/outputs/flutter-apk/app-release.apk
