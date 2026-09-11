@@ -167,7 +167,7 @@ class _LoginPageState extends State<LoginPage> {
             Row(children: [
               SizedBox(width: 22, height: 22, child: Checkbox(value: remember, onChanged: (v) => setState(() => remember = v ?? true), visualDensity: VisualDensity.compact)),
               const SizedBox(width: 5), const Text('Beni hatırla', style: TextStyle(fontSize: 12, color: Color(0xFF7C7A94))), const Spacer(),
-              TextButton(onPressed: () {}, child: const Text('Şifremi Unuttum?', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6C5CE7))),
+              TextButton(onPressed: () {}, child: const Text('Şifremi Unuttum?', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6C5CE7)))),
             ]),
             const SizedBox(height: 6),
             SizedBox(width: double.infinity, height: 50, child: FilledButton(onPressed: busy || googleBusy ? null : submit, style: FilledButton.styleFrom(backgroundColor: const Color(0xFF6C5CE7), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))), child: Text(busy ? 'Bekleyin...' : (register ? 'Kayıt Ol' : 'Giriş Yap'), style: const TextStyle(fontWeight: FontWeight.w800)))),
