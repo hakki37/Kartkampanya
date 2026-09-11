@@ -8,6 +8,18 @@ end = s.find('class MainShell extends StatefulWidget {', start)
 if start < 0 or end < 0:
     raise SystemExit('LoginPage/MainShell boundaries not found')
 
+# Some earlier UI repair passes can accidentally leave KartKampanyaApp open
+# before LoginPage. Close only the currently unbalanced outer class so the
+# login state is a real top-level StatefulWidget rather than nested in the app.
+app_start = s.find('class KartKampanyaApp extends StatelessWidget {')
+if app_start >= 0 and app_start < start:
+    prefix = s[app_start:start]
+    depth = prefix.count('{') - prefix.count('}')
+    if depth > 0:
+        s = s[:start] + ('}\n' * depth) + '\n' + s[start:]
+        start += depth * 2 + 1
+        end = s.find('class MainShell extends StatefulWidget {', start)
+
 login = r'''class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -160,4 +172,4 @@ class _LoginPageState extends State<LoginPage> {
 
 s = s[:start] + login + s[end:]
 p.write_text(s, encoding='utf-8')
-print('Google OAuth login replaced using explicit LoginPage/MainShell boundaries')
+print('Google OAuth login replaced with guarded top-level LoginPage boundary')
