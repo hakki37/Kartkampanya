@@ -14,7 +14,7 @@ class CampaignCard extends StatelessWidget {
     if (discount != null) return '%${discount.group(1)} İndirim';
     final installment = RegExp(r'(?<!\d)(\d{1,2})\s*(?:taksit|taksitli)', caseSensitive: false).firstMatch(text);
     if (installment != null) return '${installment.group(1)} Taksit';
-    final amount = RegExp(r'(\d{1,3}(?:[.\s]\d{3})*|\d+)\s*TL\s*(?:ye|\'ye|\s)*(?:varan|kadar)?\s*(?:indirim|puan|iade|kazanc)', caseSensitive: false).firstMatch(text);
+    final amount = RegExp(r'(\d{1,3}(?:[.\s]\d{3})*|\d+)\s*TL\b', caseSensitive: false).firstMatch(text);
     if (amount != null) return '${amount.group(1)} TL Avantaj';
     if (RegExp(r'\b(?:ücretsiz|bedava)\b', caseSensitive: false).hasMatch(text)) return 'Ücretsiz';
     return null;
