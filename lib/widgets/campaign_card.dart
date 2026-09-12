@@ -41,28 +41,29 @@ class CampaignCard extends StatelessWidget {
   String? _benefitFromText(String title, String description) {
     final text = '$title $description';
 
-    // Percentage benefits can be written as "%20 bonus", "%8'e varan ek indirim"
-    // or "%5 ek indirim". These must win over unrelated spending thresholds.
     final percent = RegExp(r'%\s*(\d{1,3})', caseSensitive: false).firstMatch(text);
     if (percent != null) {
       final n = percent.group(1)!;
-      final context = text.substring(percent.start, (percent.start + 100).clamp(0, text.length));
+      final contextEnd = (percent.end + 120).clamp(0, text.length);
+      final context = text.substring(percent.end, contextEnd);
       if (RegExp(r'bonus|puan|chip.?para', caseSensitive: false).hasMatch(context)) return '%$n Bonus';
       if (RegExp(r'indirim|avantaj', caseSensitive: false).hasMatch(context)) return '%$n İndirim';
-      if (RegExp(r'ek\s+indirim', caseSensitive: false).hasMatch(text)) return '%$n İndirim';
     }
 
-    // TL benefits commonly have words between the amount and benefit keyword:
-    // "10.000 TL ekstra indirim", "5.000 TL'ye varan nakit promosyon",
-    // "350 TL chip-para" etc. Keep the amount parser separate from thresholds.
-    final tlMatches = RegExp(r'(\d{1,3}(?:[.\s]\d{3})*|\d+)\s*TL(?:\s*[’\']?ye|\s*[’\']?ya)?(?:\s+(?:ye|ya|kadar|varan|ekstra|ek|nakit|ilave|avantajlı|fırsat))*(?:\s+\S+){0,3}\s*(bonus|puan|chip.?para|indirim|promosyon)', caseSensitive: false).allMatches(text).toList();
-    if (tlMatches.isNotEmpty) {
-      final match = tlMatches.last;
-      final amount = match.group(1)!.replaceAll(RegExp(r'\s+'), '.');
-      final kind = match.group(2)!.toLowerCase();
-      if (kind.contains('bonus') || kind.contains('puan') || kind.contains('chip')) return '$amount TL Bonus';
-      if (kind.contains('indirim')) return '$amount TL İndirim';
-      if (kind.contains('promosyon')) return '$amount TL Promosyon';
+    // Parse the amount first, then inspect the text immediately after TL.
+    // This avoids fragile regexes around Turkish apostrophes such as TL'ye/TL’ye.
+    final tl = RegExp(r'(\d{1,3}(?:[.\s]\d{3})*|\d+)\s*TL', caseSensitive: false);
+    for (final match in tl.allMatches(text).toList().reversed) {
+      final afterEnd = (match.end + 90).clamp(0, text.length);
+      final after = text.substring(match.end, afterEnd);
+      final kind = RegExp(r'bonus|puan|chip.?para|indirim|promosyon', caseSensitive: false).firstMatch(after);
+      if (kind != null) {
+        final amount = match.group(1)!.replaceAll(RegExp(r'\s+'), '.');
+        final word = kind.group(0)!.toLowerCase();
+        if (word.contains('bonus') || word.contains('puan') || word.contains('chip')) return '$amount TL Bonus';
+        if (word.contains('indirim')) return '$amount TL İndirim';
+        return '$amount TL Promosyon';
+      }
     }
 
     final installment = RegExp(r'(?<!\d)(\d{1,2})\s*(?:taksit|taksitli)', caseSensitive: false).firstMatch(title);
@@ -120,5 +121,5 @@ class _Advantage extends StatelessWidget {
   @override Widget build(BuildContext context) => Container(constraints: const BoxConstraints(minHeight: 58), padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: const Color(0xFFFFF4CC), border: Border.all(color: const Color(0xFFFFD76A)), borderRadius: BorderRadius.circular(12)), child: Row(children: [const Icon(Icons.local_offer, color: Color(0xFFE7A400), size: 22), const SizedBox(width: 8), Flexible(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [const Text('Tahmini Avantaj', style: TextStyle(color: Color(0xFFB87500), fontSize: 10.5, fontWeight: FontWeight.w600)), Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFFB56B00), fontSize: 14, fontWeight: FontWeight.w900))]))]));
 }
 class _Logo extends StatelessWidget { final String text; final Color color; const _Logo(this.text, this.color); @override Widget build(BuildContext context) => Container(width: 48,height:48,decoration:BoxDecoration(color:color,borderRadius:BorderRadius.circular(12)),alignment:Alignment.center,child:Text(text.isEmpty?'?':text.substring(0,1).toUpperCase(),style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900,fontSize:18))); }
-class _Badge extends StatelessWidget { final BadgeType type; final String label; const _Badge(this.type,this.label); @override Widget build(BuildContext context){final urgent=type==BadgeType.urgent;return Container(padding:const EdgeInsets.symmetric(horizontal:8,vertical:4),decoration:BoxDecoration(color:urgent?const Color(0xFFFDEAEA):const Color(0xFFE9F6EC),borderRadius:BorderRadius.circular(20)),child:Row(mainAxisSize:MainAxisSize.min,children:[Icon(Icons.access_time,size:11,color:urgent?const Color(0xFFD32F2F):const Color(0xFF2E7D32)),const SizedBox(width:3),Text(label,style:TextStyle(color:urgent?const Color(0xFFD32F2F):const Color(0xFF2E7D32),fontSize:10.5,fontWeight:FontWeight.w800))]));}}
+class _Badge extends StatelessWidget { final BadgeType type; final String label; const _Badge(this.type,this.label); @override Widget build(BuildContext context){final urgent=type==BadgeType.urgent;return Container(padding:const EdgeInsets.symmetric(horizontal:8,vertical:4),decoration:BoxDecoration(color:urgent?const Color(0xFFFDEAEA):const Color(0xFFE9F6EC),borderRadius:BorderRadius.circular(20)),child:Row(mainAxisSize:MainAxisSize.min,children:[Icon(Icons.access_time,size:11,color:urgent?const Color(0xFFD32F2F):const Color(0xFF2E7D32)),const SizedBox(width:3),Text(label,style:TextStyle(color:urgent?const Color(0xFFD32F2F):const Color(0xFF2E7D32),fontSize:10.5,fontWeight:FontWeight.w800))]);}}
 class _Tag extends StatelessWidget { final IconData icon; final String label; const _Tag(this.icon,this.label); @override Widget build(BuildContext context)=>Container(padding:const EdgeInsets.symmetric(horizontal:8,vertical:5),decoration:BoxDecoration(color:const Color(0xFFF1EFF5),borderRadius:BorderRadius.circular(8)),child:Row(mainAxisSize:MainAxisSize.min,children:[Icon(icon,size:12,color:const Color(0xFF77717F)),const SizedBox(width:4),Text(label,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:10.5,color:Color(0xFF77717F)))])); }
