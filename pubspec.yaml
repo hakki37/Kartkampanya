@@ -1,7 +1,7 @@
 name: kart_kampanya
 description: Kart kampanyalarını bul, kartlarını yönet ve avantajları karşılaştır.
 publish_to: "none"
-version: 1.0.0+29
+version: 1.0.0+30
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -12,6 +12,9 @@ dependencies:
   supabase_flutter: ^2.9.0
   url_launcher: ^6.3.2
   android_intent_plus: ^5.3.1
+  firebase_core: ^4.2.1
+  firebase_messaging: ^16.0.4
+  flutter_local_notifications: ^19.5.0
 
 dev_dependencies:
   flutter_test:
