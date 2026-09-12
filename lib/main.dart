@@ -12,6 +12,7 @@ import 'services/auth_service.dart';
 import 'services/card_service.dart';
 import 'services/campaign_service.dart';
 import 'services/guest_session.dart';
+import 'services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,7 @@ Future<void> main() async {
     anonKey: AppConfig.supabasePublishableKey,
   );
   await CampaignService.instance.loadUserState();
+  await NotificationService.instance.initialize();
   runApp(const KartKampanyaApp());
 }
 
