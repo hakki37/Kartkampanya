@@ -38,11 +38,45 @@ class CampaignCard extends StatelessWidget {
     return text.length > 320 ? '${text.substring(0, 320).trim()}…' : text;
   }
 
+  String? _benefitFromText(String title, String description) {
+    final text = '$title $description';
+
+    // Percentage benefits can be written as "%20 bonus", "%8'e varan ek indirim"
+    // or "%5 ek indirim". These must win over unrelated spending thresholds.
+    final percent = RegExp(r'%\s*(\d{1,3})', caseSensitive: false).firstMatch(text);
+    if (percent != null) {
+      final n = percent.group(1)!;
+      final context = text.substring(percent.start, (percent.start + 100).clamp(0, text.length));
+      if (RegExp(r'bonus|puan|chip.?para', caseSensitive: false).hasMatch(context)) return '%$n Bonus';
+      if (RegExp(r'indirim|avantaj', caseSensitive: false).hasMatch(context)) return '%$n İndirim';
+      if (RegExp(r'ek\s+indirim', caseSensitive: false).hasMatch(text)) return '%$n İndirim';
+    }
+
+    // TL benefits commonly have words between the amount and benefit keyword:
+    // "10.000 TL ekstra indirim", "5.000 TL'ye varan nakit promosyon",
+    // "350 TL chip-para" etc. Keep the amount parser separate from thresholds.
+    final tlMatches = RegExp(r'(\d{1,3}(?:[.\s]\d{3})*|\d+)\s*TL(?:\s*[’\']?ye|\s*[’\']?ya)?(?:\s+(?:ye|ya|kadar|varan|ekstra|ek|nakit|ilave|avantajlı|fırsat))*(?:\s+\S+){0,3}\s*(bonus|puan|chip.?para|indirim|promosyon)', caseSensitive: false).allMatches(text).toList();
+    if (tlMatches.isNotEmpty) {
+      final match = tlMatches.last;
+      final amount = match.group(1)!.replaceAll(RegExp(r'\s+'), '.');
+      final kind = match.group(2)!.toLowerCase();
+      if (kind.contains('bonus') || kind.contains('puan') || kind.contains('chip')) return '$amount TL Bonus';
+      if (kind.contains('indirim')) return '$amount TL İndirim';
+      if (kind.contains('promosyon')) return '$amount TL Promosyon';
+    }
+
+    final installment = RegExp(r'(?<!\d)(\d{1,2})\s*(?:taksit|taksitli)', caseSensitive: false).firstMatch(title);
+    if (installment != null) return '${installment.group(1)} Taksit';
+    if (RegExp(r'\b(?:ücretsiz|bedava)\b', caseSensitive: false).hasMatch(text)) return 'Ücretsiz';
+    return null;
+  }
+
   String? get estimatedAdvantage {
     final data = campaign.data;
     final rewardType = '${data['reward_type'] ?? ''}'.trim().toLowerCase();
     final rewardPercent = num.tryParse('${data['reward_percent'] ?? ''}');
     final rewardAmount = num.tryParse('${data['max_reward'] ?? data['reward_amount'] ?? ''}');
+
     if (rewardType.contains('ücretsiz') || rewardType.contains('bedava')) {
       final label = rewardType.replaceAll(RegExp(r'\s+'), ' ').trim();
       return label.isEmpty ? 'Ücretsiz' : '${label[0].toUpperCase()}${label.substring(1)}';
@@ -55,37 +89,8 @@ class CampaignCard extends StatelessWidget {
       final label = rewardType == 'tl' && titleLow.contains('bonus') ? 'TL Bonus' : rewardType == 'bonus' ? 'TL Bonus' : rewardType.isEmpty ? 'TL Avantaj' : rewardType;
       return '${_formatAmount(rewardAmount)} $label';
     }
-    final title = campaign.title;
-    final description = campaign.description;
-    final text = '$title $description';
 
-    // Campaign titles often carry the benefit even when reward columns are empty.
-    final anyTitlePercent = RegExp(r'%\s*(\d{1,3})', caseSensitive: false).firstMatch(title);
-    if (anyTitlePercent != null) {
-      final n = anyTitlePercent.group(1);
-      if (RegExp(r'bonus|puan|chip.?para', caseSensitive: false).hasMatch(title)) return '%$n Bonus';
-      if (RegExp(r'indirim|avantaj', caseSensitive: false).hasMatch(title)) return '%$n İndirim';
-    }
-
-    final titleTlBenefit = RegExp(r'(\d{1,3}(?:[.\s]\d{3})*|\d+)\s*TL\s*(bonus|puan|avantaj|chip.?para|indirim|promosyon)', caseSensitive: false).allMatches(title).toList();
-    if (titleTlBenefit.isNotEmpty) {
-      final match = titleTlBenefit.last;
-      final amount = match.group(1)!.replaceAll(RegExp(r'\s+'), '.');
-      final kind = match.group(2)!.toLowerCase();
-      if (kind.contains('bonus') || kind.contains('puan') || kind.contains('chip')) return '$amount TL Bonus';
-      if (kind.contains('indirim')) return '$amount TL İndirim';
-      if (kind.contains('promosyon')) return '$amount TL Promosyon';
-      return '$amount TL Avantaj';
-    }
-
-    final titleInstallment = RegExp(r'(?<!\d)(\d{1,2})\s*(?:taksit|taksitli)', caseSensitive: false).firstMatch(title);
-    if (titleInstallment != null) return '${titleInstallment.group(1)} Taksit';
-    final discount = RegExp(r'%\s*(\d{1,3})\s*(?:indirim|indirimli|avantaj)', caseSensitive: false).firstMatch(text);
-    if (discount != null) return '%${discount.group(1)} İndirim';
-    final installment = RegExp(r'(?<!\d)(\d{1,2})\s*(?:taksit|taksitli)', caseSensitive: false).firstMatch(title);
-    if (installment != null) return '${installment.group(1)} Taksit';
-    if (RegExp(r'\b(?:ücretsiz|bedava)\b', caseSensitive: false).hasMatch(text)) return 'Ücretsiz';
-    return null;
+    return _benefitFromText(campaign.title, campaign.description);
   }
 
   @override
