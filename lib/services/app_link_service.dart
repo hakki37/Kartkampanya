@@ -47,7 +47,7 @@ class AppLinkService {
             category: 'android.intent.category.LAUNCHER',
             package: packageName,
           );
-          if (await intent.canResolveActivity()) {
+          if (await intent.canResolveActivity() == true) {
             await intent.launch();
             return;
           }
