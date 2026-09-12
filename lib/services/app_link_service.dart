@@ -3,26 +3,26 @@ import 'dart:io';
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Keeps bank-app launching isolated from the campaign UI.
-/// If a supported bank app is not installed (or cannot be opened),
-/// the original campaign URL is opened as before.
+/// Banka uygulamasını açmayı kampanya arayüzünden izole eder.
+/// Uygulama yoksa veya açılamıyorsa mevcut web adresine geri döner.
 class AppLinkService {
   AppLinkService._();
   static final instance = AppLinkService._();
 
+  // Android Google Play'deki güncel banka uygulama paketleri.
   static const _packages = <String, String>{
-    'Akbank': 'com.akbank.android.apps.akbank_digital',
+    'Akbank': 'com.akbank.android.apps.akbank_direkt',
     'Garanti BBVA': 'com.garanti.cepsubesi',
     'Yapı Kredi': 'com.ykb.android',
-    'İş Bankası': 'com.isbank.iscep',
+    'İş Bankası': 'com.pozitron.iscep',
     'Ziraat Bankası': 'com.ziraat.ziraatmobil',
-    'Halkbank': 'com.halkbank.mobile',
-    'QNB': 'com.qnbfinansbank.mobile',
+    'Halkbank': 'com.tmobtech.halkbank',
+    'QNB': 'com.finansbank.mobile.cepsube',
     'DenizBank': 'com.denizbank.mobildeniz',
-    'TEB': 'com.teb.ceponet',
+    'TEB': 'com.teb',
     'VakıfBank': 'com.vakifbank.mobile',
     'Kuveyt Türk': 'com.kuveytturk.mobil',
-    'Türkiye Finans': 'com.turkiyefinans.mobile',
+    'Türkiye Finans': 'com.tfkb',
     'Albaraka Türk': 'com.albaraka.mobile',
     'ING': 'com.ingbanktr.ingmobil',
     'Fibabanka': 'com.fibabanka.mobile',
@@ -39,7 +39,7 @@ class AppLinkService {
     if (fallback == null || !fallback.hasScheme) return;
 
     if (Platform.isAndroid) {
-      final packageName = _packages[bankName];
+      final packageName = _packages[_normalizeBankName(bankName)];
       if (packageName != null) {
         try {
           final intent = AndroidIntent(
@@ -47,16 +47,28 @@ class AppLinkService {
             category: 'android.intent.category.LAUNCHER',
             package: packageName,
           );
-          if (await intent.canResolveActivity() == true) {
-            await intent.launch();
-            return;
-          }
+          await intent.launch();
+          return;
         } catch (_) {
-          // Never block the original campaign URL if app launch fails.
+          // Uygulama açılamazsa web kampanya adresine düş.
         }
       }
     }
 
     await launchUrl(fallback, mode: LaunchMode.externalApplication);
+  }
+
+  String _normalizeBankName(String value) {
+    final name = value.trim().toLowerCase();
+    const aliases = <String, String>{
+      'iş bankası': 'İş Bankası',
+      'is bankasi': 'İş Bankası',
+      'qnb finansbank': 'QNB',
+      'türkiye finans katılım bankası': 'Türkiye Finans',
+      'turkiye finans katilim bankasi': 'Türkiye Finans',
+      'teb bankası': 'TEB',
+      'teb bankasi': 'TEB',
+    };
+    return aliases[name] ?? value.trim();
   }
 }
