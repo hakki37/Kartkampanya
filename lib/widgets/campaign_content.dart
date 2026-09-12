@@ -74,7 +74,7 @@ class _CampaignContentState extends State<CampaignContent> {
     final text = normalizeCampaignText('${c.title} ${c.description}');
     if (text.contains('ucretsiz') || text.contains('bedava')) return 4500;
     if (text.contains('faizsiz')) return 3500;
-    final installment = RegExp(r'(?<!\d)(\d{1,2})\s*(?:[\'’]?e|[\'’]?a)?\s*varan\s*taksit').firstMatch(text) ??
+    final installment = RegExp(r"(?<!\d)(\d{1,2})\s*(?:['’]?e|['’]?a)?\s*varan\s*taksit").firstMatch(text) ??
         RegExp(r'(?<!\d)(\d{1,2})\s*(?:taksit|taksitli)').firstMatch(text);
     if (installment != null) return 2500 + double.parse(installment.group(1)!);
     if (type.contains('bonus') || type.contains('puan') || type.contains('avantaj')) return 3000;
