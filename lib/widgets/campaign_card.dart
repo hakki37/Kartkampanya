@@ -68,7 +68,6 @@ class CampaignCard extends StatelessWidget {
     if (discount != null) return '%${discount.group(1)} İndirim';
     final installment = RegExp(r'(?<!\d)(\d{1,2})\s*(?:taksit|taksitli)', caseSensitive: false).firstMatch(title);
     if (installment != null) return '${installment.group(1)} Taksit';
-    // Never treat a bare spending threshold (e.g. 3.500 TL harcama) as an advantage.
     if (RegExp(r'\b(?:ücretsiz|bedava)\b', caseSensitive: false).hasMatch(text)) return 'Ücretsiz';
     return null;
   }
@@ -83,7 +82,7 @@ class CampaignCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(onTap: onTap, child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _Logo(campaign.brand, campaign.brandColor), const SizedBox(width: 12),
+          _Logo(campaign.bankName, campaign.brandColor), const SizedBox(width: 12),
           Expanded(child: Text(campaign.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, height: 1.25))), const SizedBox(width: 8),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [_Badge(campaign.badgeType, campaign.badgeLabel), const SizedBox(height: 6), GestureDetector(onTap: onFavoriteTap, child: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, size: 20, color: isFavorite ? Colors.redAccent : const Color(0xFF77717F)))]),
         ]),
@@ -99,6 +98,84 @@ class _Advantage extends StatelessWidget {
   final String value; const _Advantage(this.value);
   @override Widget build(BuildContext context) => Container(constraints: const BoxConstraints(minHeight: 58), padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: const Color(0xFFFFF4CC), border: Border.all(color: const Color(0xFFFFD76A)), borderRadius: BorderRadius.circular(12)), child: Row(children: [const Icon(Icons.local_offer, color: Color(0xFFE7A400), size: 22), const SizedBox(width: 8), Flexible(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [const Text('Tahmini Avantaj', style: TextStyle(color: Color(0xFFB87500), fontSize: 10.5, fontWeight: FontWeight.w600)), Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFFB56B00), fontSize: 14, fontWeight: FontWeight.w900))]))]));
 }
-class _Logo extends StatelessWidget { final String text; final Color color; const _Logo(this.text, this.color); @override Widget build(BuildContext context) => Container(width: 48,height:48,decoration:BoxDecoration(color:color,borderRadius:BorderRadius.circular(12)),alignment:Alignment.center,child:Text(text.isEmpty?'?':text.substring(0,1).toUpperCase(),style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900,fontSize:18))); }
-class _Badge extends StatelessWidget { final BadgeType type; final String label; const _Badge(this.type,this.label); @override Widget build(BuildContext context){final urgent=type==BadgeType.urgent;return Container(padding:const EdgeInsets.symmetric(horizontal:8,vertical:4),decoration:BoxDecoration(color:urgent?const Color(0xFFFDEAEA):const Color(0xFFE9F6EC),borderRadius:BorderRadius.circular(20)),child:Row(mainAxisSize:MainAxisSize.min,children:[Icon(Icons.access_time,size:11,color:urgent?const Color(0xFFD32F2F):const Color(0xFF2E7D32)),const SizedBox(width:3),Text(label,style:TextStyle(color:urgent?const Color(0xFFD32F2F):const Color(0xFF2E7D32),fontSize:10.5,fontWeight:FontWeight.w800))]));}}
+
+class _Logo extends StatelessWidget {
+  final String bankName;
+  final Color fallbackColor;
+  const _Logo(this.bankName, this.fallbackColor);
+
+  static const _domains = <String, String>{
+    'akbank': 'akbank.com',
+    'garanti bbva': 'garantibbva.com.tr',
+    'garanti': 'garantibbva.com.tr',
+    'yapı kredi': 'yapikredi.com.tr',
+    'yapi kredi': 'yapikredi.com.tr',
+    'iş bankası': 'isbank.com.tr',
+    'is bankasi': 'isbank.com.tr',
+    'türkiye iş bankası': 'isbank.com.tr',
+    'turkiye is bankasi': 'isbank.com.tr',
+    'ziraat bankası': 'ziraatbank.com.tr',
+    'ziraat': 'ziraatbank.com.tr',
+    'halkbank': 'halkbank.com.tr',
+    'qnb': 'qnb.com.tr',
+    'qnb finansbank': 'qnb.com.tr',
+    'finansbank': 'qnb.com.tr',
+    'denizbank': 'denizbank.com',
+    'teb': 'teb.com.tr',
+    'vakıfbank': 'vakifbank.com.tr',
+    'vakifbank': 'vakifbank.com.tr',
+    'kuveyt türk': 'kuveytturk.com.tr',
+    'kuveyt turk': 'kuveytturk.com.tr',
+    'türkiye finans': 'turkiyefinans.com.tr',
+    'turkiye finans': 'turkiyefinans.com.tr',
+    'albaraka türk': 'albaraka.com.tr',
+    'albaraka turk': 'albaraka.com.tr',
+    'ing': 'ing.com.tr',
+    'fibabanka': 'fibabanka.com.tr',
+    'hsbc': 'hsbc.com.tr',
+    'odeabank': 'odeabank.com.tr',
+    'enpara': 'enpara.com',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final key = bankName.trim().toLowerCase();
+    final domain = _domains[key];
+    return Container(
+      width: 58,
+      height: 58,
+      padding: const EdgeInsets.all(7),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE7E2EE)),
+      ),
+      alignment: Alignment.center,
+      child: domain == null
+          ? _fallback()
+          : Image.network(
+              'https://www.google.com/s2/favicons?domain=$domain&sz=128',
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => _fallback(),
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return _fallback();
+              },
+            ),
+    );
+  }
+
+  Widget _fallback() => Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(color: fallbackColor, borderRadius: BorderRadius.circular(10)),
+        alignment: Alignment.center,
+        child: Text(
+          bankName.isEmpty ? '?' : bankName.substring(0, 1).toUpperCase(),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 19),
+        ),
+      );
+}
+
+class _Badge extends StatelessWidget { final BadgeType type; final String label; const _Badge(this.type,this.label); @override Widget build(BuildContext context){final urgent=type==BadgeType.urgent;return Container(padding:const EdgeInsets.symmetric(horizontal:8,vertical:4),decoration:BoxDecoration(color:urgent?const Color(0xFFFDEAEA):const Color(0xFFE9F6EC),borderRadius:BorderRadius.circular(20)),child:Row(mainAxisSize:MainAxisSize.min,children:[Icon(Icons.access_time,size:11,color:urgent?const Color(0xFFD32F2F):const Color(0xFF2E7D32)),const SizedBox(width:3),Text(label,style:TextStyle(color:urgent?const Color(0xFFD32F2F):const Color(0xFF2E7D32),fontSize:10.5,fontWeight:FontWeight.w800))]);}}
 class _Tag extends StatelessWidget { final IconData icon; final String label; const _Tag(this.icon,this.label); @override Widget build(BuildContext context)=>Container(padding:const EdgeInsets.symmetric(horizontal:8,vertical:5),decoration:BoxDecoration(color:const Color(0xFFF1EFF5),borderRadius:BorderRadius.circular(8)),child:Row(mainAxisSize:MainAxisSize.min,children:[Icon(icon,size:12,color:const Color(0xFF77717F)),const SizedBox(width:4),Text(label,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:10.5,color:Color(0xFF77717F)))])); }
