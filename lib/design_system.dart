@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 class KKDesign {
-  static const bg = Color(0xFFF8F7FC);
-  static const text = Color(0xFF211D2D);
-  static const muted = Color(0xFF777187);
-  static const primary = Color(0xFF6D3DF5);
-  static const primaryDark = Color(0xFF5B21B6);
-  static const border = Color(0xFFE5E1EF);
-  static const soft = Color(0xFFEDEAF7);
+  static const bg = Color(0xFFF7F8FF);
+  static const text = Color(0xFF171A2B);
+  static const muted = Color(0xFF686D82);
+  static const primary = Color(0xFF5B4BDB);
+  static const primaryDark = Color(0xFF3E2A9A);
+  static const border = Color(0xFFE1E3F0);
+  static const soft = Color(0xFFECEBFF);
 
   static ThemeData theme() => ThemeData(
         useMaterial3: true,
@@ -47,7 +47,7 @@ class KKDesign {
       );
 
   static const gradient = LinearGradient(
-    colors: [Color(0xFF8B5CF6), primaryDark],
+    colors: [Color(0xFF7C6FF0), primaryDark],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
