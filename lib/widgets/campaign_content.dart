@@ -34,7 +34,66 @@ class _CampaignContentState extends State<CampaignContent> {
     if (category != 'Tümü') result = result.where((c) => c.category == category);
     final q = normalizeCampaignText(query);
     if (q.isNotEmpty) result = result.where((c) => normalizeCampaignText('${c.title} ${c.brand} ${c.bankName} ${c.category} ${c.description}').contains(q));
-    return result.toList();
+    final list = result.toList();
+    if (widget.mode == 'matched') _sortMatched(list);
+    return list;
+  }
+
+  void _sortMatched(List<Campaign> list) {
+    list.sort((a, b) {
+      final endCompare = _urgencyScore(b).compareTo(_urgencyScore(a));
+      if (endCompare != 0) return endCompare;
+      final benefitCompare = _benefitScore(b).compareTo(_benefitScore(a));
+      if (benefitCompare != 0) return benefitCompare;
+      final ad = a.endDate, bd = b.endDate;
+      if (ad != null && bd != null) return ad.compareTo(bd);
+      if (ad != null) return -1;
+      if (bd != null) return 1;
+      return 0;
+    });
+  }
+
+  int _urgencyScore(Campaign c) {
+    final end = c.endDate;
+    if (end == null) return 0;
+    final days = end.difference(DateTime.now()).inHours / 24;
+    if (days <= 1) return 5000;
+    if (days <= 3) return 4000;
+    if (days <= 7) return 3000;
+    if (days <= 14) return 2000;
+    return 1000;
+  }
+
+  double _benefitScore(Campaign c) {
+    final d = c.data;
+    final type = normalizeCampaignText('${d['reward_type'] ?? ''}');
+    final percent = num.tryParse('${d['reward_percent'] ?? ''}');
+    final amount = num.tryParse('${d['max_reward'] ?? d['reward_amount'] ?? ''}');
+    if (percent != null && percent > 0) return 10000 + percent.toDouble();
+    if (amount != null && amount > 0) return 5000 + amount.toDouble();
+    final text = normalizeCampaignText('${c.title} ${c.description}');
+    if (text.contains('ucretsiz') || text.contains('bedava')) return 4500;
+    if (text.contains('faizsiz')) return 3500;
+    final installment = RegExp(r'(?<!\d)(\d{1,2})\s*(?:[\'’]?e|[\'’]?a)?\s*varan\s*taksit').firstMatch(text) ??
+        RegExp(r'(?<!\d)(\d{1,2})\s*(?:taksit|taksitli)').firstMatch(text);
+    if (installment != null) return 2500 + double.parse(installment.group(1)!);
+    if (type.contains('bonus') || type.contains('puan') || type.contains('avantaj')) return 3000;
+    if (text.contains('indirim')) return 3000;
+    return 0;
+  }
+
+  String? _matchLabel(Campaign c) {
+    if (widget.mode != 'matched' || widget.cards.isEmpty) return null;
+    for (final card in widget.cards) {
+      if (service.matchesCard(c, card)) {
+        final parts = <String>[];
+        if (card.card.isNotEmpty) parts.add(card.card);
+        if (card.network.isNotEmpty) parts.add(card.network);
+        if (parts.isEmpty && card.bank.isNotEmpty) parts.add(card.bank);
+        return parts.isEmpty ? 'Kartına uygun' : 'Kartına uygun: ${parts.join(' • ')}';
+      }
+    }
+    return null;
   }
 
   @override
@@ -53,7 +112,7 @@ class _CampaignContentState extends State<CampaignContent> {
         ? Center(child: Padding(padding: const EdgeInsets.all(30), child: Text(widget.mode == 'matched' && widget.cards.isEmpty ? 'Önce Bendeki Kartlar bölümünden kart ekle.' : 'Bu filtreye uygun kampanya bulunamadı.', textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF777187), fontWeight: FontWeight.w700))))
         : ListView.builder(padding: const EdgeInsets.only(bottom: 18, top: 3), itemCount: list.length, itemBuilder: (_, i) {
             final c = list[i];
-            return CampaignCard(campaign: c, isFavorite: service.isFavorite(c.id), onFavoriteTap: () async { await service.toggleFavorite(c.id); if (mounted) setState(() {}); }, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CampaignDetailPage(campaign: c))));
+            return CampaignCard(campaign: c, matchLabel: _matchLabel(c), isFavorite: service.isFavorite(c.id), onFavoriteTap: () async { await service.toggleFavorite(c.id); if (mounted) setState(() {}); }, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CampaignDetailPage(campaign: c))));
           })),
     ]);
   }
