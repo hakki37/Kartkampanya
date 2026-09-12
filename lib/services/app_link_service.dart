@@ -47,8 +47,15 @@ class AppLinkService {
             category: 'android.intent.category.LAUNCHER',
             package: packageName,
           );
-          await intent.launch();
-          return;
+
+          // Paket cihazda gerçekten yüklü değilse intent'i çalıştırmıyoruz.
+          // Aksi halde Android bazı durumlarda implicit resolver'a düşüp
+          // Play Store'u varsayılan uygulama olarak açabiliyor.
+          final canOpen = await intent.canResolveActivity() ?? false;
+          if (canOpen) {
+            await intent.launch();
+            return;
+          }
         } catch (_) {
           // Uygulama açılamazsa web kampanya adresine düş.
         }
