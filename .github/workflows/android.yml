@@ -26,20 +26,6 @@ jobs:
         run: flutter pub get
       - name: Remove generated sample test
         run: rm -rf test
-      - name: Repair campaign benefit parser
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("lib/widgets/campaign_card.dart")
-          s = p.read_text()
-          lines = s.splitlines()
-          replacement = '''    final tlMatches = RegExp(r"(\\d{1,3}(?:[.\\s]\\d{3})*|\\d+)\\s*TL(?:\\s*[’']?(?:ye|ya))?(?:\\s+(?:kadar|varan|ekstra|ek|nakit|ilave|avantajlı|fırsat))*\\s*(?:bonus|puan|chip.?para|indirim|promosyon)", caseSensitive: false).allMatches(text).toList();'''
-          for i, line in enumerate(lines):
-              if "final tlMatches = RegExp(" in line:
-                  lines[i] = replacement
-                  break
-          p.write_text("\\n".join(lines) + "\\n")
-          PY
       - name: Format Dart
         run: dart format lib
       - name: Analyze Dart
