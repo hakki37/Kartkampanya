@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/card_service.dart';
+import '../services/guest_session.dart';
 import '../widgets/app_header.dart';
 
 class MyCardsScreen extends StatelessWidget {
@@ -7,70 +8,165 @@ class MyCardsScreen extends StatelessWidget {
   final Future<void> Function(UserCard) onAdd;
   final Future<void> Function(UserCard) onDelete;
   final bool loading;
-  const MyCardsScreen({super.key, required this.cards, required this.onAdd, required this.onDelete, this.loading = false});
+  final bool guest;
+
+  const MyCardsScreen({
+    super.key,
+    required this.cards,
+    required this.onAdd,
+    required this.onDelete,
+    this.loading = false,
+    this.guest = false,
+  });
 
   Future<void> _add(BuildContext context) async {
+    if (guest) return;
     final result = await Navigator.push<Map<String, String>>(
-      context, MaterialPageRoute(builder: (_) => const _CardAddPage()),
+      context,
+      MaterialPageRoute(builder: (_) => const _CardAddPage()),
     );
     if (result == null) return;
     try {
-      await onAdd(UserCard(id: '', bank: result['bank']!, card: result['card']!, network: result['network']!, customerType: result['customerType']!, cardType: result['cardType']!));
+      await onAdd(UserCard(
+        id: '',
+        bank: result['bank']!,
+        card: result['card']!,
+        network: result['network']!,
+        customerType: result['customerType']!,
+        cardType: result['cardType']!,
+      ));
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kart eklendi.')));
     } catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Kart eklenemedi: $e')));
     }
   }
 
+  void _login(BuildContext context) => GuestSession.exit();
+
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: const AppHeader(title: 'Bendeki Kartlar'),
-    body: loading ? const Center(child: CircularProgressIndicator()) : ListView(
-      padding: const EdgeInsets.fromLTRB(18, 6, 18, 24),
-      children: [
-        const Text('Sahip olduğun kartları ekle, sana uygun kampanyaları gösterelim.', style: TextStyle(color: Color(0xFF777187), fontSize: 12)),
-        const SizedBox(height: 16),
-        if (cards.isEmpty) const Padding(padding: EdgeInsets.all(35), child: Text('Henüz kart eklemedin.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF777187), fontWeight: FontWeight.w700))),
-        ...cards.map((c) => Container(
-          margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: const [BoxShadow(color: Color(0x12000000), blurRadius: 10, offset: Offset(0, 3))]),
-          child: Row(children: [
-            Container(width: 58, height: 42, decoration: BoxDecoration(color: const Color(0xFFF1EDFA), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(c.bank.length > 8 ? c.bank.substring(0, 8) : c.bank, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF6D3DF5)))),
-            const SizedBox(width: 11),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${c.bank} • ${c.card}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF211D2D))), const SizedBox(height: 3), Text('${c.customerType} • ${c.cardType} • ${c.network}', style: const TextStyle(fontSize: 11, color: Color(0xFF777187)))])),
-            IconButton(onPressed: () => onDelete(c), icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFF3D3747))),
-          ]),
-        )),
-        const SizedBox(height: 8),
-        SizedBox(height: 52, child: FilledButton.icon(onPressed: () => _add(context), icon: const Icon(Icons.add_rounded), label: const Text('Kart Ekle', style: TextStyle(fontWeight: FontWeight.w900)), style: FilledButton.styleFrom(backgroundColor: const Color(0xFF6D3DF5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17))))),
-      ],
-    ),
-  );
+        appBar: const AppHeader(title: 'Bendeki Kartlar'),
+        body: loading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(18, 6, 18, 24),
+                children: [
+                  Text(
+                    guest
+                        ? 'Ziyaretçi modundasın. Kart eklemek ve sana özel eşleştirme yapmak için üye ol veya giriş yap.'
+                        : 'Sahip olduğun kartları ekle, sana uygun kampanyaları gösterelim.',
+                    style: const TextStyle(color: Color(0xFF777187), fontSize: 12),
+                  ),
+                  const SizedBox(height: 16),
+                  if (guest)
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1EEFF),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFE0D8FF)),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.lock_outline_rounded, size: 34, color: Color(0xFF6D3DF5)),
+                          const SizedBox(height: 10),
+                          const Text('Kartlarını eklemek için giriş yap', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF211D2D))),
+                          const SizedBox(height: 6),
+                          const Text('Üye olduğunda kartlarını kaydedebilir ve sana uygun kampanyaları görebilirsin.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Color(0xFF777187))),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            height: 46,
+                            width: double.infinity,
+                            child: FilledButton(
+                              onPressed: () => _login(context),
+                              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF6D3DF5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                              child: const Text('Giriş Yap / Kayıt Ol', style: TextStyle(fontWeight: FontWeight.w900)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else ...[
+                    if (cards.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(35),
+                        child: Text('Henüz kart eklemedin.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF777187), fontWeight: FontWeight.w700)),
+                      ),
+                    ...cards.map((c) => Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: const [BoxShadow(color: Color(0x12000000), blurRadius: 10, offset: Offset(0, 3))]),
+                          child: Row(
+                            children: [
+                              Container(width: 58, height: 42, decoration: BoxDecoration(color: const Color(0xFFF1EDFA), borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: Text(c.bank.length > 8 ? c.bank.substring(0, 8) : c.bank, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF6D3DF5)))),
+                              const SizedBox(width: 11),
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${c.bank} • ${c.card}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF211D2D))), const SizedBox(height: 3), Text('${c.customerType} • ${c.cardType} • ${c.network}', style: const TextStyle(fontSize: 11, color: Color(0xFF777187)))])),
+                              IconButton(onPressed: () => onDelete(c), icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFF3D3747))),
+                            ],
+                          ),
+                        )),
+                    const SizedBox(height: 8),
+                    SizedBox(height: 52, child: FilledButton.icon(onPressed: () => _add(context), icon: const Icon(Icons.add_rounded), label: const Text('Kart Ekle', style: TextStyle(fontWeight: FontWeight.w900)), style: FilledButton.styleFrom(backgroundColor: const Color(0xFF6D3DF5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17))))),
+                  ],
+                ],
+              ),
+      );
 }
 
-class _CardAddPage extends StatefulWidget { const _CardAddPage(); @override State<_CardAddPage> createState() => _CardAddPageState(); }
+class _CardAddPage extends StatefulWidget {
+  const _CardAddPage();
+
+  @override
+  State<_CardAddPage> createState() => _CardAddPageState();
+}
+
 class _CardAddPageState extends State<_CardAddPage> {
   String bank = CardService.banks.first, network = 'Visa', customerType = 'Bireysel', cardType = 'Kredi';
   late String card;
-  @override void initState() { super.initState(); card = CardService.cardMap[bank]!.first; }
+
+  @override
+  void initState() {
+    super.initState();
+    card = CardService.cardMap[bank]!.first;
+  }
+
   List<String> get options => CardService.cardMap[bank] ?? const ['Kart'];
+
   Widget field(String label, String value, List<String> items, ValueChanged<String> cb) => Padding(
-    padding: const EdgeInsets.only(bottom: 13),
-    child: DropdownButtonFormField<String>(
-      value: value, isExpanded: true, items: items.map((x) => DropdownMenuItem(value: x, child: Text(x, style: const TextStyle(fontWeight: FontWeight.w700)))).toList(), onChanged: (v) { if (v != null) cb(v); },
-      decoration: InputDecoration(labelText: label, filled: true, fillColor: Colors.white, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE4DFEA))), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE4DFEA))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF6D3DF5), width: 1.5))),
-    ),
-  );
-  @override Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFFF8F7FC), appBar: AppBar(title: const Text('Kart Ekle', style: TextStyle(fontWeight: FontWeight.w900))),
-    body: ListView(padding: const EdgeInsets.fromLTRB(18, 10, 18, 30), children: [
-      const Text('Kart bilgilerini seç', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF211D2D))), const SizedBox(height: 6), const Text('Banka seçince kart seçenekleri otomatik güncellenir.', style: TextStyle(fontSize: 12, color: Color(0xFF777187))), const SizedBox(height: 20),
-      field('Banka', bank, CardService.banks, (v) => setState(() { bank = v; card = options.first; })),
-      field('Kart', card, options, (v) => setState(() => card = v)),
-      field('Kart ağı', network, const ['Visa', 'Mastercard', 'Troy'], (v) => setState(() => network = v)),
-      field('Müşteri tipi', customerType, const ['Bireysel', 'Ticari'], (v) => setState(() => customerType = v)),
-      field('Kart tipi', cardType, const ['Kredi', 'Banka'], (v) => setState(() => cardType = v)), const SizedBox(height: 8),
-      SizedBox(height: 54, child: FilledButton.icon(onPressed: () => Navigator.pop(context, {'bank': bank, 'card': card, 'network': network, 'customerType': customerType, 'cardType': cardType}), icon: const Icon(Icons.check_rounded), label: const Text('Kartı Kaydet', style: TextStyle(fontWeight: FontWeight.w900)), style: FilledButton.styleFrom(backgroundColor: const Color(0xFF6D3DF5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17))))),
-    ]),
-  );
+        padding: const EdgeInsets.only(bottom: 13),
+        child: DropdownButtonFormField<String>(
+          value: value,
+          isExpanded: true,
+          items: items.map((x) => DropdownMenuItem(value: x, child: Text(x, style: const TextStyle(fontWeight: FontWeight.w700)))).toList(),
+          onChanged: (v) {
+            if (v != null) cb(v);
+          },
+          decoration: InputDecoration(labelText: label, filled: true, fillColor: Colors.white, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE4DFEA))), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE4DFEA))), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF6D3DF5), width: 1.5))),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: const Color(0xFFF8F7FC),
+        appBar: AppBar(title: const Text('Kart Ekle', style: TextStyle(fontWeight: FontWeight.w900))),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 30),
+          children: [
+            const Text('Kart bilgilerini seç', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF211D2D))),
+            const SizedBox(height: 6),
+            const Text('Banka seçince kart seçenekleri otomatik güncellenir.', style: TextStyle(fontSize: 12, color: Color(0xFF777187))),
+            const SizedBox(height: 20),
+            field('Banka', bank, CardService.banks, (v) => setState(() {
+              bank = v;
+              card = options.first;
+            })),
+            field('Kart', card, options, (v) => setState(() => card = v)),
+            field('Kart ağı', network, const ['Visa', 'Mastercard', 'Troy'], (v) => setState(() => network = v)),
+            field('Müşteri tipi', customerType, const ['Bireysel', 'Ticari'], (v) => setState(() => customerType = v)),
+            field('Kart tipi', cardType, const ['Kredi', 'Banka'], (v) => setState(() => cardType = v)),
+            const SizedBox(height: 8),
+            SizedBox(height: 54, child: FilledButton.icon(onPressed: () => Navigator.pop(context, {'bank': bank, 'card': card, 'network': network, 'customerType': customerType, 'cardType': cardType}), icon: const Icon(Icons.check_rounded), label: const Text('Kartı Kaydet', style: TextStyle(fontWeight: FontWeight.w900)), style: FilledButton.styleFrom(backgroundColor: const Color(0xFF6D3DF5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17))))),
+          ],
+        ),
+      );
 }
