@@ -11,6 +11,7 @@ import 'widgets/bottom_navigation.dart';
 import 'services/auth_service.dart';
 import 'services/card_service.dart';
 import 'services/campaign_service.dart';
+import 'services/guest_session.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,11 +39,14 @@ class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
   @override
-  Widget build(BuildContext context) => StreamBuilder<AuthState>(
-        stream: AuthService.instance.authStateChanges,
-        builder: (_, __) => Supabase.instance.client.auth.currentSession == null
-            ? const LoginPage()
-            : const MainScaffold(),
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
+        valueListenable: GuestSession.active,
+        builder: (_, isGuest, __) => StreamBuilder<AuthState>(
+          stream: AuthService.instance.authStateChanges,
+          builder: (_, __) => isGuest || Supabase.instance.client.auth.currentSession != null
+              ? const MainScaffold()
+              : const LoginPage(),
+        ),
       );
 }
 
@@ -65,6 +69,10 @@ class _MainScaffoldState extends State<MainScaffold> {
   }
 
   Future<void> _loadCards() async {
+    if (GuestSession.isGuest) {
+      if (mounted) setState(() => loadingCards = false);
+      return;
+    }
     try {
       final data = await CardService.instance.fetchMyCards();
       if (mounted) {
@@ -79,17 +87,20 @@ class _MainScaffoldState extends State<MainScaffold> {
   }
 
   Future<void> addCard(UserCard card) async {
+    if (GuestSession.isGuest) return;
     await CardService.instance.addCard(card);
     await _loadCards();
   }
 
   Future<void> deleteCard(UserCard card) async {
+    if (GuestSession.isGuest) return;
     await CardService.instance.deleteCard(card);
     await _loadCards();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isGuest = GuestSession.isGuest;
     final pages = <Widget>[
       HomeScreen(cards: cards),
       CampaignsScreen(cards: cards, mode: 'matched'),
@@ -99,6 +110,7 @@ class _MainScaffoldState extends State<MainScaffold> {
         onAdd: addCard,
         onDelete: deleteCard,
         loading: loadingCards,
+        guest: isGuest,
       ),
       const CategoriesScreen(),
     ];
