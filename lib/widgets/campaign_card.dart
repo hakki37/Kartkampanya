@@ -59,11 +59,25 @@ class CampaignCard extends StatelessWidget {
     final description = campaign.description;
     final text = '$title $description';
 
-    // Percentage benefits can be written as "%8'e varan" or "%5" in the title.
+    // Campaign titles often carry the benefit even when reward columns are empty.
     final anyTitlePercent = RegExp(r'%\s*(\d{1,3})', caseSensitive: false).firstMatch(title);
-    if (anyTitlePercent != null && RegExp(r'indirim|avantaj', caseSensitive: false).hasMatch(title)) return '%${anyTitlePercent.group(1)} İndirim';
-    final titleBonus = RegExp(r'(\d{1,3}(?:[.\s]\d{3})*|\d+)\s*TL\s*(?:bonus|puan|avantaj|chip.?para)', caseSensitive: false).allMatches(title).toList();
-    if (titleBonus.isNotEmpty) return '${titleBonus.last.group(1)} TL Bonus';
+    if (anyTitlePercent != null) {
+      final n = anyTitlePercent.group(1);
+      if (RegExp(r'bonus|puan|chip.?para', caseSensitive: false).hasMatch(title)) return '%$n Bonus';
+      if (RegExp(r'indirim|avantaj', caseSensitive: false).hasMatch(title)) return '%$n İndirim';
+    }
+
+    final titleTlBenefit = RegExp(r'(\d{1,3}(?:[.\s]\d{3})*|\d+)\s*TL\s*(bonus|puan|avantaj|chip.?para|indirim|promosyon)', caseSensitive: false).allMatches(title).toList();
+    if (titleTlBenefit.isNotEmpty) {
+      final match = titleTlBenefit.last;
+      final amount = match.group(1)!.replaceAll(RegExp(r'\s+'), '.');
+      final kind = match.group(2)!.toLowerCase();
+      if (kind.contains('bonus') || kind.contains('puan') || kind.contains('chip')) return '$amount TL Bonus';
+      if (kind.contains('indirim')) return '$amount TL İndirim';
+      if (kind.contains('promosyon')) return '$amount TL Promosyon';
+      return '$amount TL Avantaj';
+    }
+
     final titleInstallment = RegExp(r'(?<!\d)(\d{1,2})\s*(?:taksit|taksitli)', caseSensitive: false).firstMatch(title);
     if (titleInstallment != null) return '${titleInstallment.group(1)} Taksit';
     final discount = RegExp(r'%\s*(\d{1,3})\s*(?:indirim|indirimli|avantaj)', caseSensitive: false).firstMatch(text);
