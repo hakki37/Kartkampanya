@@ -30,27 +30,17 @@ class HomeScreen extends StatelessWidget {
                     tooltip: 'Favorilerim',
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const FavoritesScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const FavoritesScreen()),
                     ),
-                    icon: const Icon(
-                      Icons.favorite_border,
-                      color: Color(0xFF6D3DF5),
-                    ),
+                    icon: const Icon(Icons.favorite_border, color: Color(0xFF6D3DF5)),
                   ),
                   IconButton(
                     tooltip: 'Profilim',
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const ProfileScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
                     ),
-                    icon: const Icon(
-                      Icons.person_outline,
-                      color: Color(0xFF6D3DF5),
-                    ),
+                    icon: const Icon(Icons.person_outline, color: Color(0xFF6D3DF5)),
                   ),
                 ],
               ),
@@ -61,19 +51,11 @@ class HomeScreen extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Kartlarına uygun fırsatları kolayca bul.',
-                  style: TextStyle(
-                    color: Color(0xFF777187),
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Color(0xFF777187), fontSize: 12),
                 ),
               ),
             ),
-            Expanded(
-              child: CampaignContent(
-                cards: cards,
-                mode: 'matched',
-              ),
-            ),
+            Expanded(child: CampaignContent(cards: cards, mode: 'matched')),
           ],
         ),
       );
