@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/card_service.dart';
 import '../widgets/campaign_content.dart';
-import '../widgets/quick_actions.dart';
 import 'favorites_screen.dart';
 import 'profile_screen.dart';
 
@@ -20,18 +19,38 @@ class HomeScreen extends StatelessWidget {
                   const Expanded(
                     child: Text(
                       'Kampanyaları Keşfet',
-                      style: TextStyle(fontSize: 27, fontWeight: FontWeight.w900, color: Color(0xFF211D2D)),
+                      style: TextStyle(
+                        fontSize: 27,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF211D2D),
+                      ),
                     ),
                   ),
                   IconButton(
                     tooltip: 'Favorilerim',
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoritesScreen())),
-                    icon: const Icon(Icons.favorite_border, color: Color(0xFF6D3DF5)),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const FavoritesScreen(),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.favorite_border,
+                      color: Color(0xFF6D3DF5),
+                    ),
                   ),
                   IconButton(
                     tooltip: 'Profilim',
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
-                    icon: const Icon(Icons.person_outline, color: Color(0xFF6D3DF5)),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ProfileScreen(),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.person_outline,
+                      color: Color(0xFF6D3DF5),
+                    ),
                   ),
                 ],
               ),
@@ -42,15 +61,19 @@ class HomeScreen extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Kartlarına uygun fırsatları kolayca bul.',
-                  style: TextStyle(color: Color(0xFF777187), fontSize: 12),
+                  style: TextStyle(
+                    color: Color(0xFF777187),
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ),
-            QuickActions(
-              onFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoritesScreen())),
-              onProfile: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+            Expanded(
+              child: CampaignContent(
+                cards: cards,
+                mode: 'matched',
+              ),
             ),
-            Expanded(child: CampaignContent(cards: cards, mode: 'matched')),
           ],
         ),
       );
