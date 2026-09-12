@@ -82,20 +82,6 @@ class _CampaignContentState extends State<CampaignContent> {
     return 0;
   }
 
-  String? _matchLabel(Campaign c) {
-    if (widget.mode != 'matched' || widget.cards.isEmpty) return null;
-    for (final card in widget.cards) {
-      if (service.matchesCard(c, card)) {
-        final parts = <String>[];
-        if (card.card.isNotEmpty) parts.add(card.card);
-        if (card.network.isNotEmpty) parts.add(card.network);
-        if (parts.isEmpty && card.bank.isNotEmpty) parts.add(card.bank);
-        return parts.isEmpty ? 'Kartına uygun' : 'Kartına uygun: ${parts.join(' • ')}';
-      }
-    }
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
     if (loading) return const Center(child: CircularProgressIndicator());
@@ -112,7 +98,7 @@ class _CampaignContentState extends State<CampaignContent> {
         ? Center(child: Padding(padding: const EdgeInsets.all(30), child: Text(widget.mode == 'matched' && widget.cards.isEmpty ? 'Önce Bendeki Kartlar bölümünden kart ekle.' : 'Bu filtreye uygun kampanya bulunamadı.', textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF777187), fontWeight: FontWeight.w700))))
         : ListView.builder(padding: const EdgeInsets.only(bottom: 18, top: 3), itemCount: list.length, itemBuilder: (_, i) {
             final c = list[i];
-            return CampaignCard(campaign: c, matchLabel: _matchLabel(c), isFavorite: service.isFavorite(c.id), onFavoriteTap: () async { await service.toggleFavorite(c.id); if (mounted) setState(() {}); }, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CampaignDetailPage(campaign: c))));
+            return CampaignCard(campaign: c, isFavorite: service.isFavorite(c.id), onFavoriteTap: () async { await service.toggleFavorite(c.id); if (mounted) setState(() {}); }, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CampaignDetailPage(campaign: c))));
           })),
     ]);
   }
