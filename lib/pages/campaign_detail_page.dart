@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../services/campaign_service.dart';
+import '../services/app_link_service.dart';
 
 class CampaignDetailPage extends StatefulWidget {
   final Campaign campaign;
@@ -25,10 +25,10 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
   }
 
   Future<void> open() async {
-    final uri = Uri.tryParse(widget.campaign.sourceUrl);
-    if (uri != null && uri.hasScheme) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    await AppLinkService.instance.openCampaign(
+      bankName: widget.campaign.bankName,
+      sourceUrl: widget.campaign.sourceUrl,
+    );
   }
 
   String _cleanDetail(String value) {
